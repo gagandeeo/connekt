@@ -762,6 +762,36 @@
             border-color: #c0392b !important;
         }
 
+        /* ── Leaflet popup glass override ── */
+        .leaflet-popup-content-wrapper {
+            background: rgba(147, 149, 152, 0.82) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 14px !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35) !important;
+            color: var(--text) !important;
+        }
+
+        .leaflet-popup-tip {
+            background: rgba(25, 40, 58, 0.82) !important;
+            box-shadow: none !important;
+        }
+
+        .leaflet-popup-close-button {
+            color: var(--text-dim) !important;
+            font-size: 20px !important;
+        }
+
+        .leaflet-popup-close-button:hover {
+            color: var(--red) !important;
+        }
+
+        .leaflet-popup-content {
+            color: var(--text) !important;
+            font-family: 'Nunito', sans-serif !important;
+        }
+
         /* ── Toasts ── */
         .oob-popup {
             position: fixed;
@@ -1307,9 +1337,9 @@
         }
 
         .btn-promote-one {
-            background: rgba(126, 184, 218, 0.18);
-            color: var(--accent2);
-            border: 1px solid rgba(126, 184, 218, 0.25);
+            background: #8e44ad !important;
+            color: #fff !important;
+            border: none;
             padding: 8px 12px;
             border-radius: 8px;
             font-size: 0.8rem;
@@ -1322,8 +1352,15 @@
         }
 
         .btn-promote-one:hover {
-            background: rgba(126, 184, 218, 0.28);
-            box-shadow: 0 4px 14px rgba(126, 184, 218, 0.1);
+            background: #732d91 !important;
+        }
+
+        .landmark-popup-form .popup-btns {
+            justify-content: center;
+        }
+
+        .landmark-popup-form .btn-promote-one {
+            text-align: center;
         }
 
         /* ── Scrollbar styling ── */
