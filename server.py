@@ -7,8 +7,10 @@ import os
 
 import numpy as np
 import requests
+from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from scipy.spatial import Voronoi
 from shapely.geometry import Polygon, Point
 from shapely.ops import unary_union
@@ -93,9 +95,15 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse({"error": exc.detail}, status_code=exc.status_code)
 
 
+REACT_DIST = Path(__file__).parent / "frontend" / "dist"
+
+
 @app.get("/")
 async def index():
-    return FileResponse("index.html")
+    react_index = REACT_DIST / "index.html"
+    # if react_index.exists():
+    return FileResponse(str(react_index))
+    # return FileResponse("index.html")
 
 
 @app.post("/api/register")
@@ -782,6 +790,17 @@ async def api_get_voronoi(request: Request):
     rows = await db.voronoicell.find_many(where={"boundary_name": boundary_name})
     cells = [{"name": r.name, "lat": r.lat, "lon": r.lon, "polygon": r.polygon} for r in rows]
     return {"cells": cells}
+
+
+# Serve React static assets if the build exists
+if REACT_DIST.exists() and (REACT_DIST / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=str(REACT_DIST / "assets")), name="react-assets")
+
+
+# Catch-all for SPA client-side routing (must be after all API routes)
+@app.get("/{full_path:path}")
+async def spa_catch_all(full_path: str):
+    return FileResponse(str(REACT_DIST / "index.html"))
 
 
 if __name__ == "__main__":
