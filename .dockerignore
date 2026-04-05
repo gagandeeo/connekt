@@ -1,0 +1,13 @@
+.venv
+__pycache__
+.env
+.git
+.github
+cache/
+memory/
+*.json
+*.png
+*.md
+test_api.py
+test_api.sh
+instructions.prompts
