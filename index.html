@@ -1,0 +1,2521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Satellite Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 10px 16px;
+            background: #16213e;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        header h1 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #e94560;
+            white-space: nowrap;
+        }
+
+        .search-area {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+            max-width: 500px;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 6px;
+        }
+
+        .search-form input {
+            flex: 1;
+            padding: 7px 12px;
+            border: 1px solid #333;
+            border-radius: 6px;
+            background: #0f3460;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .search-form input::placeholder { color: #7a7a9e; }
+        .search-form input:focus { border-color: #e94560; }
+
+        .search-form button {
+            padding: 7px 16px;
+            border: none;
+            border-radius: 6px;
+            background: #e94560;
+            color: #fff;
+            font-size: 0.9rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .search-form button:hover { background: #c73652; }
+        .search-form button:disabled { background: #555; cursor: not-allowed; }
+
+        .suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 4px;
+            background: #16213e;
+            border: 1px solid #333;
+            border-radius: 6px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .suggestions.visible { display: block; }
+
+        .suggestion-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #1a1a2e;
+            color: #ccc;
+        }
+
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: #0f3460; color: #fff; }
+
+        .suggestions-header {
+            padding: 8px 14px;
+            font-size: 0.75rem;
+            color: #e94560;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #333;
+        }
+
+        .coord-form {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .coord-form input {
+            width: 160px;
+            padding: 7px 10px;
+            border: 1px solid #333;
+            border-radius: 6px;
+            background: #0f3460;
+            color: #e0e0e0;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .coord-form input::placeholder { color: #7a7a9e; }
+        .coord-form input:focus { border-color: #e94560; }
+
+        .coord-form button {
+            padding: 7px 14px;
+            border: none;
+            border-radius: 6px;
+            background: #e94560;
+            color: #fff;
+            font-size: 0.85rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .coord-form button:hover { background: #c73652; }
+        .coord-form button:disabled { background: #555; cursor: not-allowed; }
+
+        /* Toolbar row below header */
+        .toolbar {
+            padding: 6px 16px;
+            background: #121d36;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #1a1a2e;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 22px;
+            background: #333;
+            margin: 0 4px;
+        }
+
+        #status {
+            font-size: 0.82rem;
+            color: #7a7a9e;
+            margin-left: auto;
+            white-space: nowrap;
+            max-width: 350px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #map { flex: 1; }
+
+        /* Buttons */
+        .btn-sm {
+            padding: 5px 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+        }
+
+        .btn-sm:disabled { background: #555 !important; cursor: not-allowed; opacity: 0.6; }
+
+        .btn-save { background: #2ecc71; color: #fff; }
+        .btn-save:hover { background: #27ae60; }
+
+        .btn-toggle {
+            border: 2px solid #e94560;
+            background: transparent;
+            color: #e94560;
+        }
+
+        .btn-toggle.active {
+            background: #00bcd4;
+            border-color: #00bcd4;
+            color: #fff;
+        }
+
+        .btn-toggle:hover { opacity: 0.85; }
+
+        .btn-lock {
+            border: 2px solid #f39c12;
+            background: transparent;
+            color: #f39c12;
+        }
+
+        .btn-lock.active {
+            background: #f39c12;
+            color: #fff;
+        }
+
+        .btn-lock:hover { opacity: 0.85; }
+
+        .btn-info {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #7a7a9e;
+            background: transparent;
+            color: #7a7a9e;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .btn-info:hover, .btn-info.active {
+            border-color: #e94560;
+            color: #e94560;
+        }
+
+        .landmark-count {
+            font-size: 0.78rem;
+            color: #2ecc71;
+            white-space: nowrap;
+        }
+
+        .bp-count {
+            font-size: 0.78rem;
+            color: #00bcd4;
+            white-space: nowrap;
+        }
+
+        /* Info card */
+        .info-card {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 340px;
+            max-height: calc(100vh - 20px);
+            overflow-y: auto;
+            background: #16213e;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 18px;
+            z-index: 2500;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            display: none;
+        }
+
+        .info-card.visible { display: block; }
+
+        .info-card h2 {
+            font-size: 1rem;
+            color: #e94560;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .info-card .close-btn {
+            background: none;
+            border: none;
+            color: #7a7a9e;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .info-card .close-btn:hover { color: #e94560; }
+
+        .info-card section {
+            margin-bottom: 12px;
+        }
+
+        .info-card section h3 {
+            font-size: 0.82rem;
+            color: #00bcd4;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .info-card p, .info-card li {
+            font-size: 0.8rem;
+            color: #bbb;
+            line-height: 1.5;
+        }
+
+        .info-card ul {
+            padding-left: 16px;
+        }
+
+        .info-card kbd {
+            background: #0f3460;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            color: #e0e0e0;
+            border: 1px solid #333;
+        }
+
+        /* Lock overlay */
+        .lock-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 800;
+            cursor: not-allowed;
+            display: none;
+        }
+
+        .lock-overlay.active { display: block; }
+
+        .lock-banner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7);
+            color: #f39c12;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .lock-overlay.active .lock-banner { opacity: 1; }
+
+        /* Landmark popup form */
+        .landmark-popup-form {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 200px;
+        }
+
+        .landmark-popup-form input {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .landmark-popup-form .popup-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .landmark-popup-form button {
+            padding: 5px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .landmark-popup-form .btn-save { background: #2ecc71; color: #fff; }
+        .landmark-popup-form .btn-delete { background: #e74c3c; color: #fff; }
+
+        .oob-popup {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #c0392b;
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            z-index: 2000;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            animation: fadeInOut 3s ease forwards;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+            10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .toast-popup {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            z-index: 2000;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            animation: fadeInOut 3s ease forwards;
+        }
+
+        .toast-success { background: #27ae60; }
+        .toast-error { background: #c0392b; }
+
+        /* Nested panel */
+        .nested-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #16213e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 14px;
+            z-index: 1000;
+            min-width: 260px;
+            max-width: 320px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .nested-panel.visible { display: block; }
+
+        .nested-panel h3 {
+            font-size: 0.9rem;
+            color: #00bcd4;
+            margin-bottom: 10px;
+        }
+
+        .nested-panel input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #0f3460;
+            color: #e0e0e0;
+            font-size: 0.85rem;
+            outline: none;
+            margin-bottom: 8px;
+        }
+
+        .nested-panel input:focus { border-color: #00bcd4; }
+
+        .nested-panel button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+
+        .nested-panel .btn-create { background: #00bcd4; color: #fff; }
+        .nested-panel .btn-cancel { background: #555; color: #fff; }
+        .nested-panel .btn-update { background: #f39c12; color: #fff; }
+        .nested-panel .btn-delete { background: #e74c3c; color: #fff; }
+        .nested-panel .btn-edit { background: #3498db; color: #fff; }
+
+        .nested-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #1a1a2e;
+            font-size: 0.82rem;
+        }
+
+        .nested-list-item .name {
+            color: #00bcd4;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .nested-list-item .name:hover { text-decoration: underline; }
+
+        .nested-list-item .actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        /* Voronoi spinner */
+        .voronoi-spinner {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+
+        .voronoi-spinner .spinner-content {
+            background: #16213e;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 24px 36px;
+            text-align: center;
+            color: #e0e0e0;
+        }
+
+        .voronoi-spinner .spinner-icon {
+            width: 40px; height: 40px;
+            border: 4px solid #333;
+            border-top-color: #f39c12;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Auth modal */
+        .auth-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+        }
+
+        .auth-modal {
+            background: #16213e;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 28px;
+            width: 340px;
+            max-width: 90vw;
+        }
+
+        .auth-modal h2 {
+            font-size: 1.1rem;
+            color: #e94560;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #333;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 8px;
+            background: transparent;
+            border: none;
+            color: #7a7a9e;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .auth-tab.active {
+            color: #e94560;
+            border-bottom-color: #e94560;
+        }
+
+        .auth-modal input {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #333;
+            border-radius: 6px;
+            background: #0f3460;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            outline: none;
+            margin-bottom: 10px;
+        }
+
+        .auth-modal input:focus { border-color: #e94560; }
+
+        .auth-modal .auth-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: #e94560;
+            color: #fff;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+
+        .auth-modal .auth-btn:hover { background: #c73652; }
+        .auth-modal .auth-btn:disabled { background: #555; cursor: not-allowed; }
+
+        .auth-error {
+            color: #e74c3c;
+            font-size: 0.82rem;
+            margin-bottom: 8px;
+            min-height: 1.2em;
+        }
+
+        /* User header section */
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .user-section .username {
+            font-size: 0.82rem;
+            color: #2ecc71;
+            font-weight: 500;
+        }
+
+        .user-section .role-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .role-badge.admin { background: #e94560; color: #fff; }
+        .role-badge.normal { background: #0f3460; color: #7a7a9e; }
+
+        .btn-logout {
+            padding: 5px 10px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background: transparent;
+            color: #999;
+            font-size: 0.78rem;
+            cursor: pointer;
+        }
+
+        .btn-logout:hover { border-color: #e94560; color: #e94560; }
+
+        /* Landmark version toggle */
+        .btn-version {
+            border: 2px solid #3498db;
+            background: transparent;
+            color: #3498db;
+        }
+
+        .btn-version.active {
+            background: #3498db;
+            color: #fff;
+        }
+
+        .btn-version:hover { opacity: 0.85; }
+
+        .btn-refresh {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 34px;
+            padding: 5px 8px !important;
+            background: #1a3a52;
+            color: #7eb8da;
+            border: 1px solid #3498db !important;
+            border-radius: 5px;
+        }
+
+        .btn-refresh:hover:not(:disabled) {
+            background: #3498db;
+            color: #fff;
+        }
+
+        .btn-refresh svg {
+            display: block;
+            flex-shrink: 0;
+        }
+
+        /* Admin section */
+        .admin-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .admin-group select {
+            padding: 4px 8px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #0f3460;
+            color: #e0e0e0;
+            font-size: 0.8rem;
+            outline: none;
+        }
+
+        .admin-group select:focus { border-color: #e94560; }
+
+        .btn-promote {
+            background: #f39c12;
+            color: #fff;
+        }
+
+        .btn-promote:hover { background: #e67e22; }
+        .btn-promote-one {
+            background: #8e44ad;
+            color: #fff;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+        }
+        .btn-promote-one:hover { background: #6c3483; }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 8px 10px;
+                gap: 8px;
+            }
+
+            header h1 {
+                font-size: 1rem;
+                width: 100%;
+            }
+
+            .search-area {
+                min-width: 0;
+                max-width: none;
+                width: 100%;
+            }
+
+            .coord-form {
+                width: 100%;
+            }
+
+            .coord-form input {
+                flex: 1;
+                width: auto;
+            }
+
+            .toolbar {
+                padding: 6px 10px;
+                gap: 6px;
+            }
+
+            .toolbar-divider { display: none; }
+
+            .toolbar-group {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+
+            #status {
+                width: 100%;
+                margin-left: 0;
+                order: 99;
+            }
+
+            .info-card {
+                top: 0;
+                right: 0;
+                left: 0;
+                width: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+
+            .nested-panel {
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .btn-sm { padding: 5px 8px; font-size: 0.75rem; }
+            .btn-info { width: 26px; height: 26px; font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Modal -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-modal">
+            <h2>Connekt</h2>
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="loginTab">Login</button>
+                <button class="auth-tab" id="registerTab">Register</button>
+            </div>
+            <div class="auth-error" id="authError"></div>
+            <input type="text" id="authUsername" placeholder="Username" autocomplete="username" />
+            <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password" />
+            <button class="auth-btn" id="authSubmit">Login</button>
+        </div>
+    </div>
+
+    <header>
+        <h1>Connekt</h1>
+        <div class="search-area">
+            <form class="search-form" id="searchForm">
+                <input type="text" id="cityInput" placeholder="Search for a city..." autocomplete="off" required />
+                <button type="submit" id="searchBtn">Search</button>
+            </form>
+            <div class="suggestions" id="suggestions"></div>
+        </div>
+        <form class="coord-form" id="coordForm">
+            <input type="text" id="coordInput" placeholder="Lat, Lon" autocomplete="off" required />
+            <button type="submit" id="coordBtn" disabled>Pin</button>
+        </form>
+        <button class="btn-info" id="infoBtn" title="Help & Info">?</button>
+        <div class="user-section" id="userSection" style="display:none;">
+            <span class="username" id="usernameDisplay"></span>
+            <span class="role-badge" id="roleBadge"></span>
+            <button class="btn-logout" id="logoutBtn">Logout</button>
+        </div>
+    </header>
+
+    <div class="toolbar" id="toolbar">
+        <div class="toolbar-group">
+            <button class="btn-sm btn-save" id="saveBtn" disabled>Save Landmarks</button>
+            <label id="saveAsBaseLabel" style="display:none;font-size:0.78rem;color:#f39c12;cursor:pointer;">
+                <input type="checkbox" id="saveAsBase" /> as Base
+            </label>
+            <span class="landmark-count" id="landmarkCount"></span>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+            <button class="btn-sm btn-version active" id="baseToggle" disabled>Base</button>
+            <button class="btn-sm btn-version active" id="userToggle" disabled>My Landmarks</button>
+            <button type="button" class="btn-sm btn-refresh" id="refreshBaseBtn" disabled title="Reload base landmarks and Voronoi regions from server" aria-label="Refresh base and Voronoi">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M23 4v6h-6"/>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+            </button>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group admin-group" id="adminGroup" style="display:none;">
+            <select id="userVersionSelect"><option value="">-- User versions --</option></select>
+            <button class="btn-sm btn-promote" id="promoteBtn" disabled>Promote to Base</button>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+            <button class="btn-sm btn-toggle" id="modeToggle" disabled>Boundary Mode</button>
+            <span class="bp-count" id="bpCount"></span>
+        </div>
+        <div class="toolbar-divider"></div>
+        <div class="toolbar-group">
+            <button class="btn-sm btn-toggle" id="fillToggle" disabled>Hide Fill</button>
+            <button class="btn-sm btn-lock" id="lockToggle">Lock</button>
+        </div>
+        <span id="status"></span>
+    </div>
+
+    <div id="map">
+        <div class="lock-overlay" id="lockOverlay">
+            <div class="lock-banner">Map interaction locked. Click "Lock" to unlock.</div>
+        </div>
+    </div>
+
+    <div class="voronoi-spinner" id="voronoiSpinner" style="display:none;">
+        <div class="spinner-content">
+            <div class="spinner-icon"></div>
+            <div>Computing Voronoi regions...</div>
+        </div>
+    </div>
+
+    <div class="info-card" id="infoCard">
+        <h2>
+            Help & Controls
+            <button class="close-btn" id="infoClose">&times;</button>
+        </h2>
+        <section>
+            <h3>Search</h3>
+            <p>Type a city or region name and click <kbd>Search</kbd>. Pick from suggestions to load the boundary on the map.</p>
+        </section>
+        <section>
+            <h3>Coordinates</h3>
+            <p>Enter <kbd>Lat, Lon</kbd> (comma-separated) and click <kbd>Pin</kbd> to place a landmark or boundary point at that location.</p>
+        </section>
+        <section>
+            <h3>Landmarks</h3>
+            <ul>
+                <li><strong>Normal users:</strong> place landmarks inside the boundary (grey <kbd>?</kbd> until named, then red stars). <kbd>Save Landmarks</kbd> stores <em>your</em> version. Blue base markers are read-only. Voronoi regions are not shown.</li>
+                <li><strong>Admins:</strong> edit the shared <strong>base</strong> layer directly (blue markers). <kbd>Save Base</kbd> publishes changes. Dashed Voronoi regions are admin-only. Use <kbd>User versions</kbd> to preview others’ landmarks and promote into base.</li>
+                <li>The circular refresh reloads base from the server; admins also reload cached Voronoi.</li>
+            </ul>
+        </section>
+        <section>
+            <h3>Boundary Mode</h3>
+            <ul>
+                <li>Toggle <kbd>Boundary Mode</kbd> to switch from landmark to boundary-point placement.</li>
+                <li>Click to place numbered cyan markers. Drag to reposition. Right-click to remove.</li>
+                <li>Enter a name in the side panel and save to create a nested boundary.</li>
+            </ul>
+        </section>
+        <section>
+            <h3>Other Controls</h3>
+            <ul>
+                <li><kbd>Hide Fill</kbd> / <kbd>Show Fill</kbd> toggles polygon fill transparency.</li>
+                <li><kbd>Lock</kbd> prevents accidental clicks on the map.</li>
+                <li>Use the layer switcher (top-right of map) to change tile layers.</li>
+            </ul>
+        </section>
+    </div>
+
+    <div class="nested-panel" id="nestedPanel">
+        <h3 id="nestedPanelTitle">Nested Boundaries</h3>
+        <div id="nestedList"></div>
+        <div id="nestedCreate" style="display:none;">
+            <input type="text" id="nestedNameInput" placeholder="Boundary name..." />
+            <button class="btn-create" id="nestedSaveBtn">Save Boundary</button>
+            <button class="btn-cancel" id="nestedCancelBtn">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Auth State ---
+        let currentUser = null;
+
+        function isAdminUser() {
+            return currentUser && currentUser.role === "ADMIN";
+        }
+        let authToken = null;
+
+        const authOverlay = document.getElementById("authOverlay");
+        const loginTab = document.getElementById("loginTab");
+        const registerTab = document.getElementById("registerTab");
+        const authUsername = document.getElementById("authUsername");
+        const authPassword = document.getElementById("authPassword");
+        const authSubmit = document.getElementById("authSubmit");
+        const authError = document.getElementById("authError");
+        const userSection = document.getElementById("userSection");
+        const usernameDisplay = document.getElementById("usernameDisplay");
+        const roleBadge = document.getElementById("roleBadge");
+        const logoutBtn = document.getElementById("logoutBtn");
+
+        let authMode = "login"; // "login" or "register"
+
+        loginTab.addEventListener("click", () => {
+            authMode = "login";
+            loginTab.classList.add("active");
+            registerTab.classList.remove("active");
+            authSubmit.textContent = "Login";
+            authError.textContent = "";
+        });
+
+        registerTab.addEventListener("click", () => {
+            authMode = "register";
+            registerTab.classList.add("active");
+            loginTab.classList.remove("active");
+            authSubmit.textContent = "Register";
+            authError.textContent = "";
+        });
+
+        authSubmit.addEventListener("click", async () => {
+            const username = authUsername.value.trim();
+            const password = authPassword.value;
+            if (!username || !password) {
+                authError.textContent = "Username and password are required.";
+                return;
+            }
+            authSubmit.disabled = true;
+            authError.textContent = "";
+            try {
+                const endpoint = authMode === "login" ? "/api/login" : "/api/register";
+                const resp = await fetch(endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password }),
+                });
+                const data = await resp.json();
+                if (resp.ok && data.user) {
+                    if (authMode === "register") {
+                        // After register, auto-login
+                        const loginResp = await fetch("/api/login", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ username, password }),
+                        });
+                        const loginData = await loginResp.json();
+                        if (loginResp.ok && loginData.token) {
+                            setAuth(loginData.user, loginData.token);
+                        } else {
+                            authError.textContent = "Registered! Please log in.";
+                            loginTab.click();
+                            return;
+                        }
+                    } else {
+                        setAuth(data.user, data.token);
+                    }
+                } else {
+                    authError.textContent = data.error || "Authentication failed.";
+                }
+            } catch (err) {
+                authError.textContent = "Network error: " + err.message;
+            } finally {
+                authSubmit.disabled = false;
+            }
+        });
+
+        authPassword.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") authSubmit.click();
+        });
+
+        function setAuth(user, token) {
+            currentUser = user;
+            authToken = token;
+            localStorage.setItem("connekt_user", JSON.stringify(user));
+            localStorage.setItem("connekt_token", token);
+            authOverlay.style.display = "none";
+            showUserUI();
+        }
+
+        function showUserUI() {
+            userSection.style.display = "flex";
+            usernameDisplay.textContent = currentUser.username;
+            roleBadge.textContent = currentUser.role;
+            roleBadge.className = "role-badge " + currentUser.role.toLowerCase();
+
+            // Show admin controls
+            const isAdmin = currentUser.role === "ADMIN";
+            document.getElementById("adminGroup").style.display = isAdmin ? "flex" : "none";
+            document.getElementById("saveAsBaseLabel").style.display = "none";
+            document.getElementById("userToggle").style.display = isAdmin ? "none" : "";
+            saveBtn.textContent = isAdmin ? "Save Base" : "Save Landmarks";
+
+            // Hide boundary mode for normal users
+            modeToggle.style.display = isAdmin ? "" : "none";
+
+            if (!isAdmin) {
+                clearVoronoiLayers();
+            }
+
+            if (boundaryName) {
+                clearUserLandmarks();
+                clearBaseLandmarks();
+                void loadSavedLandmarks(boundaryName, true);
+            }
+        }
+
+        logoutBtn.addEventListener("click", () => {
+            currentUser = null;
+            authToken = null;
+            clearVoronoiLayers();
+            saveBtn.textContent = "Save Landmarks";
+            document.getElementById("userToggle").style.display = "";
+            localStorage.removeItem("connekt_user");
+            localStorage.removeItem("connekt_token");
+            userSection.style.display = "none";
+            authOverlay.style.display = "flex";
+            authUsername.value = "";
+            authPassword.value = "";
+            authError.textContent = "";
+        });
+
+        function authHeaders() {
+            const h = { "Content-Type": "application/json" };
+            if (authToken) h["Authorization"] = "Bearer " + authToken;
+            return h;
+        }
+
+        async function authFetch(url, options = {}) {
+            options.headers = { ...authHeaders(), ...(options.headers || {}) };
+            return fetch(url, options);
+        }
+
+        // Check saved session on load
+        (async function initAuth() {
+            const savedUser = localStorage.getItem("connekt_user");
+            const savedToken = localStorage.getItem("connekt_token");
+            if (savedUser && savedToken) {
+                try {
+                    const resp = await fetch("/api/me", {
+                        headers: { "Authorization": "Bearer " + savedToken },
+                    });
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        currentUser = data.user;
+                        authToken = savedToken;
+                        authOverlay.style.display = "none";
+                        showUserUI();
+                        return;
+                    }
+                } catch (e) {}
+            }
+            authOverlay.style.display = "flex";
+        })();
+
+        // --- Map Setup ---
+        const map = L.map("map").setView([20, 0], 3);
+
+        const baseLayers = {
+            "Esri Satellite": L.tileLayer(
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                { attribution: "Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics", maxZoom: 19 }
+            ),
+            "Google Satellite": L.tileLayer(
+                "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+                { attribution: "&copy; Google", maxZoom: 20 }
+            ),
+            "Google Hybrid": L.tileLayer(
+                "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+                { attribution: "&copy; Google", maxZoom: 20 }
+            ),
+            "OpenStreetMap": L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                { attribution: "&copy; OpenStreetMap contributors", maxZoom: 19 }
+            ),
+        };
+
+        baseLayers["Google Hybrid"].addTo(map);
+        L.control.layers(baseLayers, null, { position: "topright" }).addTo(map);
+
+        const statusEl = document.getElementById("status");
+        const searchForm = document.getElementById("searchForm");
+        const cityInput = document.getElementById("cityInput");
+        const searchBtn = document.getElementById("searchBtn");
+        const suggestionsEl = document.getElementById("suggestions");
+
+        const coordForm = document.getElementById("coordForm");
+        const coordInput = document.getElementById("coordInput");
+        const coordBtn = document.getElementById("coordBtn");
+
+        const saveBtn = document.getElementById("saveBtn");
+        const landmarkCountEl = document.getElementById("landmarkCount");
+        const modeToggle = document.getElementById("modeToggle");
+        const bpCountEl = document.getElementById("bpCount");
+        const nestedPanel = document.getElementById("nestedPanel");
+        const nestedList = document.getElementById("nestedList");
+        const nestedCreate = document.getElementById("nestedCreate");
+        const nestedNameInput = document.getElementById("nestedNameInput");
+        const nestedSaveBtn = document.getElementById("nestedSaveBtn");
+        const nestedCancelBtn = document.getElementById("nestedCancelBtn");
+
+        // Version toggle buttons
+        const baseToggle = document.getElementById("baseToggle");
+        const userToggle = document.getElementById("userToggle");
+        const refreshBaseBtn = document.getElementById("refreshBaseBtn");
+
+        // Admin controls
+        const userVersionSelect = document.getElementById("userVersionSelect");
+        const promoteBtn = document.getElementById("promoteBtn");
+
+        let boundaryLayer = null;
+        let boundaryCoords = null;
+        let boundaryName = null;
+        let coordMarker = null;
+
+        // Base landmarks (read-only): array of { lat, lon, name, marker }
+        let baseLandmarks = [];
+        let showBase = true;
+
+        // User-placed landmarks (editable): array of { lat, lon, name, marker }
+        let userLandmarks = [];
+        let showUser = true;
+
+        // Admin: viewed user's landmarks (read-only)
+        let viewedUserLandmarks = [];
+
+        // Boundary-point mode
+        let boundaryPointMode = false;
+        let boundaryPoints = []; // array of { lat, lon, marker }
+        let boundaryPointLine = null; // polyline connecting boundary points
+        let nestedBoundaryLayers = {}; // { childName: L.polygon }
+        let editingNestedName = null; // when editing an existing nested boundary
+
+        // Voronoi cells
+        let voronoiLayers = []; // array of L.polygon layers
+        const voronoiSpinner = document.getElementById("voronoiSpinner");
+
+        const VORONOI_COLORS = [
+            "#e94560", "#3498db", "#2ecc71", "#f39c12", "#9b59b6",
+            "#1abc9c", "#e67e22", "#e74c3c", "#00bcd4", "#8e44ad",
+            "#16a085", "#d35400", "#c0392b", "#2980b9", "#27ae60",
+        ];
+
+        // --- Screen Lock ---
+        let screenLocked = false;
+        const lockToggle = document.getElementById("lockToggle");
+        const lockOverlay = document.getElementById("lockOverlay");
+
+        lockToggle.addEventListener("click", () => {
+            screenLocked = !screenLocked;
+            lockToggle.classList.toggle("active", screenLocked);
+            lockToggle.textContent = screenLocked ? "Unlock" : "Lock";
+            lockOverlay.classList.toggle("active", screenLocked);
+        });
+
+        // --- Info Card ---
+        const infoBtn = document.getElementById("infoBtn");
+        const infoCard = document.getElementById("infoCard");
+        const infoClose = document.getElementById("infoClose");
+
+        infoBtn.addEventListener("click", () => {
+            const open = infoCard.classList.toggle("visible");
+            infoBtn.classList.toggle("active", open);
+        });
+
+        infoClose.addEventListener("click", () => {
+            infoCard.classList.remove("visible");
+            infoBtn.classList.remove("active");
+        });
+
+        // --- Voronoi ---
+
+        function clearVoronoiLayers() {
+            voronoiLayers.forEach(l => map.removeLayer(l));
+            voronoiLayers = [];
+        }
+
+        function drawVoronoiCells(cells) {
+            clearVoronoiLayers();
+            cells.forEach((cell, i) => {
+                const color = VORONOI_COLORS[i % VORONOI_COLORS.length];
+                cell.polygon.forEach(ring => {
+                    const latlngs = ring.map(([lat, lon]) => [lat, lon]);
+                    const polygon = L.polygon(latlngs, {
+                        color: color,
+                        weight: 2,
+                        fillColor: color,
+                        fillOpacity: fillVisible ? 0.15 : 0,
+                        dashArray: "5, 5",
+                    }).addTo(map);
+                    polygon.bindTooltip(cell.name || "Unnamed", { direction: "center", className: "nested-tooltip" });
+                    voronoiLayers.push(polygon);
+                });
+            });
+        }
+
+        async function computeAndDrawVoronoiFromBase() {
+            if (!isAdminUser() || !boundaryName || !boundaryCoords) return;
+            const namedLandmarks = baseLandmarks.filter(l => l.name);
+            if (namedLandmarks.length < 2) {
+                clearVoronoiLayers();
+                return;
+            }
+
+            const landmarks = namedLandmarks.map(l => ({ lat: l.lat, lon: l.lon, name: l.name }));
+
+            voronoiSpinner.style.display = "flex";
+            try {
+                const resp = await authFetch("/api/compute-voronoi", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        boundary_name: boundaryName,
+                        landmarks,
+                        boundary_coords: boundaryCoords,
+                    }),
+                });
+                const data = await resp.json();
+                if (data.ok && data.cells) {
+                    drawVoronoiCells(data.cells);
+                }
+            } catch (err) {
+                console.error("Voronoi (base) computation error:", err);
+            } finally {
+                voronoiSpinner.style.display = "none";
+            }
+        }
+
+        async function loadCachedVoronoi() {
+            if (!boundaryName) return;
+            if (!isAdminUser()) {
+                clearVoronoiLayers();
+                return;
+            }
+            try {
+                const resp = await authFetch("/api/voronoi", {
+                    method: "POST",
+                    body: JSON.stringify({ boundary_name: boundaryName }),
+                });
+                const data = await resp.json();
+                if (data.cells && data.cells.length > 0) {
+                    drawVoronoiCells(data.cells);
+                } else {
+                    clearVoronoiLayers();
+                }
+            } catch (err) {
+                console.error("Error loading cached Voronoi:", err);
+            }
+        }
+
+        async function refreshBaseAndVoronoiFromServer() {
+            if (!boundaryName) return;
+            refreshBaseBtn.disabled = true;
+            try {
+                await refreshBaseLandmarksFromServer();
+                if (isAdminUser()) {
+                    await loadCachedVoronoi();
+                } else {
+                    clearVoronoiLayers();
+                }
+                showToast(
+                    isAdminUser() ? "Base landmarks and Voronoi updated." : "Base landmarks updated.",
+                    "success",
+                );
+            } catch (err) {
+                showToast("Refresh failed: " + err.message, "error");
+            } finally {
+                refreshBaseBtn.disabled = false;
+            }
+        }
+
+        // --- Landmarks ---
+
+        function createUserLandmarkIcon(named) {
+            const color = named ? "#e94560" : "#888";
+            return L.divIcon({
+                className: "landmark-icon",
+                html: `<div style="
+                    background: ${color};
+                    width: 24px; height: 24px;
+                    border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: 13px;
+                    border: 2px solid #fff;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+                    color: #fff;
+                ">${named ? "&#9733;" : "?"}</div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+                popupAnchor: [0, -14],
+            });
+        }
+
+        function createBaseLandmarkIcon() {
+            return L.divIcon({
+                className: "landmark-icon",
+                html: `<div style="
+                    background: #3498db;
+                    width: 24px; height: 24px;
+                    border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: 13px;
+                    border: 2px solid #fff;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+                    color: #fff;
+                ">&#9733;</div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+                popupAnchor: [0, -14],
+            });
+        }
+
+        function createEditableBaseLandmarkIcon(named) {
+            const color = named ? "#3498db" : "#888";
+            return L.divIcon({
+                className: "landmark-icon",
+                html: `<div style="
+                    background: ${color};
+                    width: 24px; height: 24px;
+                    border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: 13px;
+                    border: 2px solid #fff;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+                    color: #fff;
+                ">${named ? "&#9733;" : "?"}</div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+                popupAnchor: [0, -14],
+            });
+        }
+
+        function createViewedUserLandmarkIcon() {
+            return L.divIcon({
+                className: "landmark-icon",
+                html: `<div style="
+                    background: #9b59b6;
+                    width: 24px; height: 24px;
+                    border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: 13px;
+                    border: 2px solid #fff;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+                    color: #fff;
+                ">&#9733;</div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+                popupAnchor: [0, -14],
+            });
+        }
+
+        function buildViewedUserLandmarkPopup(lm) {
+            const nameVal = (lm.name || "").replace(/"/g, "&quot;");
+            return `<div class="landmark-popup-form">
+                <label style="font-size:0.8rem;color:#666;">${lm.lat.toFixed(6)}, ${lm.lon.toFixed(6)}</label>
+                <input type="text" class="lm-name-input" value="${nameVal}" placeholder="Landmark name..." />
+                <div class="popup-btns" style="margin-top:8px;">
+                    <button type="button" class="btn-save" onclick="saveViewedUserLandmarkName(this, ${lm.id})">Save name</button>
+                </div>
+                <button type="button" class="btn-promote-one" onclick="promoteViewedLandmarkToBase(${lm.id})">Promote to base</button>
+            </div>`;
+        }
+
+        function buildAdminEditableBasePopup(lm) {
+            const nameVal = (lm.name || "").replace(/"/g, "&quot;");
+            return `<div class="landmark-popup-form">
+                <div style="font-size:0.75rem;color:#3498db;font-weight:600;margin-bottom:4px;">Base landmark</div>
+                <label style="font-size:0.8rem;color:#666;">${lm.lat.toFixed(6)}, ${lm.lon.toFixed(6)}</label>
+                <input type="text" class="lm-name-input" value="${nameVal}" placeholder="Landmark name..." />
+                <div class="popup-btns">
+                    <button type="button" class="btn-save" onclick="saveAdminBaseLandmarkLocal(this)">Save</button>
+                    <button type="button" class="btn-delete" onclick="deleteAdminBaseLandmark(this)">Delete</button>
+                </div>
+            </div>`;
+        }
+
+        function updateLandmarkCount() {
+            if (isAdminUser()) {
+                const total = baseLandmarks.length;
+                const named = baseLandmarks.filter(l => l.name).length;
+                if (total === 0) {
+                    landmarkCountEl.textContent = "";
+                } else {
+                    landmarkCountEl.textContent = `${named}/${total} named (base)`;
+                }
+                saveBtn.disabled = !boundaryName || total === 0;
+            } else {
+                const total = userLandmarks.length;
+                const named = userLandmarks.filter(l => l.name).length;
+                if (total === 0) {
+                    landmarkCountEl.textContent = "";
+                } else {
+                    landmarkCountEl.textContent = `${named}/${total} named`;
+                }
+                saveBtn.disabled = !boundaryName || total === 0;
+            }
+        }
+
+        function buildPopupContent(lm) {
+            const nameVal = lm.name || "";
+            return `<div class="landmark-popup-form">
+                <label style="font-size:0.8rem;color:#666;">${lm.lat.toFixed(6)}, ${lm.lon.toFixed(6)}</label>
+                <input type="text" class="lm-name-input" value="${nameVal.replace(/"/g, '&quot;')}" placeholder="Enter landmark name..." />
+                <div class="popup-btns">
+                    <button class="btn-save" onclick="saveLandmarkName(this)">Save</button>
+                    <button class="btn-delete" onclick="deleteLandmark(this)">Delete</button>
+                </div>
+            </div>`;
+        }
+
+        async function reverseGeocode(lat, lon) {
+            try {
+                const resp = await authFetch("/api/reverse-geocode", {
+                    method: "POST",
+                    body: JSON.stringify({ lat, lon }),
+                });
+                const data = await resp.json();
+                return data.name || "";
+            } catch (err) {
+                console.error("Reverse geocode error:", err);
+                return "";
+            }
+        }
+
+        function addLandmarkMarker(lat, lon, name, id) {
+            const lm = {
+                lat,
+                lon,
+                name: name || "",
+                id: id != null ? id : null,
+                marker: null,
+            };
+
+            const icon = createUserLandmarkIcon(!!lm.name);
+            const marker = L.marker([lat, lon], { icon }).addTo(map);
+            marker._lmRef = lm;
+            lm.marker = marker;
+
+            marker.bindPopup(buildPopupContent(lm));
+            marker.on("click", () => {
+                marker.setPopupContent(buildPopupContent(lm));
+            });
+
+            userLandmarks.push(lm);
+            updateLandmarkCount();
+            return lm;
+        }
+
+        async function placeLandmarkWithGeocode(lat, lon) {
+            const lm = addLandmarkMarker(lat, lon, "");
+            lm.marker.setPopupContent(buildPopupContent(lm));
+            lm.marker.openPopup();
+            statusEl.textContent = "Looking up place name...";
+
+            const name = await reverseGeocode(lat, lon);
+            if (name) {
+                lm.name = name;
+                lm.marker.setIcon(createUserLandmarkIcon(true));
+                updateLandmarkCount();
+            }
+            lm.marker.setPopupContent(buildPopupContent(lm));
+            lm.marker.openPopup();
+            statusEl.textContent = name
+                ? `Found "${name}" — edit or keep the name.`
+                : `Landmark placed — give it a name.`;
+            return lm;
+        }
+
+        window.saveLandmarkName = function(btn) {
+            const popup = btn.closest(".landmark-popup-form");
+            const input = popup.querySelector(".lm-name-input");
+            const name = input.value.trim();
+
+            const openMarker = userLandmarks.find(l => l.marker.isPopupOpen());
+            if (openMarker) {
+                openMarker.name = name;
+                openMarker.marker.setIcon(createUserLandmarkIcon(!!name));
+                openMarker.marker.closePopup();
+                updateLandmarkCount();
+            }
+        };
+
+        window.deleteLandmark = function(btn) {
+            const openMarker = userLandmarks.find(l => l.marker.isPopupOpen());
+            if (openMarker) {
+                map.removeLayer(openMarker.marker);
+                userLandmarks = userLandmarks.filter(l => l !== openMarker);
+                updateLandmarkCount();
+            }
+        };
+
+        function clearUserLandmarks() {
+            userLandmarks.forEach(l => map.removeLayer(l.marker));
+            userLandmarks = [];
+            updateLandmarkCount();
+        }
+
+        function clearBaseLandmarks() {
+            baseLandmarks.forEach(l => map.removeLayer(l.marker));
+            baseLandmarks = [];
+        }
+
+        function clearViewedUserLandmarks() {
+            viewedUserLandmarks.forEach(l => map.removeLayer(l.marker));
+            viewedUserLandmarks = [];
+        }
+
+        function addBaseLandmarkMarker(lat, lon, name, id) {
+            const admin = isAdminUser();
+            const named = !!(name && String(name).trim());
+            const icon = admin ? createEditableBaseLandmarkIcon(named) : createBaseLandmarkIcon();
+            const marker = L.marker([lat, lon], { icon, interactive: true }).addTo(map);
+            marker.bindTooltip((name || "").trim() ? name : "Unnamed", { direction: "top" });
+            const lm = { lat, lon, name: name || "", id: id != null ? id : null, marker };
+            baseLandmarks.push(lm);
+            if (admin) {
+                marker.bindPopup(buildAdminEditableBasePopup(lm));
+                marker.on("click", () => {
+                    marker.setPopupContent(buildAdminEditableBasePopup(lm));
+                });
+            }
+            if (!showBase) map.removeLayer(marker);
+            return lm;
+        }
+
+        window.saveAdminBaseLandmarkLocal = function(btn) {
+            const popup = btn.closest(".landmark-popup-form");
+            const input = popup.querySelector(".lm-name-input");
+            const name = input.value.trim();
+            const openLm = baseLandmarks.find(l => l.marker.isPopupOpen());
+            if (openLm) {
+                openLm.name = name;
+                openLm.marker.setIcon(createEditableBaseLandmarkIcon(!!name));
+                openLm.marker.unbindTooltip();
+                openLm.marker.bindTooltip(name || "Unnamed", { direction: "top" });
+                openLm.marker.closePopup();
+                updateLandmarkCount();
+            }
+        };
+
+        window.deleteAdminBaseLandmark = function(btn) {
+            const openLm = baseLandmarks.find(l => l.marker.isPopupOpen());
+            if (openLm) {
+                map.removeLayer(openLm.marker);
+                baseLandmarks = baseLandmarks.filter(l => l !== openLm);
+                updateLandmarkCount();
+            }
+        };
+
+        function addViewedUserLandmarkMarker(lat, lon, name, id) {
+            const icon = createViewedUserLandmarkIcon();
+            const marker = L.marker([lat, lon], { icon, interactive: true }).addTo(map);
+            marker.bindTooltip(name || "Unnamed", { direction: "top" });
+            const lm = { lat, lon, name, id, marker };
+            marker.bindPopup(buildViewedUserLandmarkPopup(lm));
+            marker.on("click", () => {
+                marker.setPopupContent(buildViewedUserLandmarkPopup(lm));
+            });
+            viewedUserLandmarks.push(lm);
+            return lm;
+        }
+
+        function toggleBaseVisibility() {
+            showBase = !showBase;
+            baseToggle.classList.toggle("active", showBase);
+            baseLandmarks.forEach(l => {
+                if (showBase) l.marker.addTo(map);
+                else map.removeLayer(l.marker);
+            });
+        }
+
+        function toggleUserVisibility() {
+            showUser = !showUser;
+            userToggle.classList.toggle("active", showUser);
+            userLandmarks.forEach(l => {
+                if (showUser) l.marker.addTo(map);
+                else map.removeLayer(l.marker);
+            });
+        }
+
+        baseToggle.addEventListener("click", toggleBaseVisibility);
+        userToggle.addEventListener("click", toggleUserVisibility);
+
+        refreshBaseBtn.addEventListener("click", () => {
+            refreshBaseAndVoronoiFromServer();
+        });
+
+        function clearCoordMarker() {
+            if (coordMarker) {
+                map.removeLayer(coordMarker);
+                coordMarker = null;
+            }
+        }
+
+        function clearBoundary() {
+            if (boundaryLayer) {
+                map.removeLayer(boundaryLayer);
+                boundaryLayer = null;
+            }
+            boundaryCoords = null;
+            boundaryName = null;
+            coordBtn.disabled = true;
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Save Landmarks";
+            modeToggle.disabled = true;
+            fillToggle.disabled = true;
+            baseToggle.disabled = true;
+            userToggle.disabled = true;
+            refreshBaseBtn.disabled = true;
+            fillVisible = true;
+            fillToggle.textContent = "Hide Fill";
+            fillToggle.classList.remove("active");
+            clearCoordMarker();
+            clearBaseLandmarks();
+            clearUserLandmarks();
+            clearViewedUserLandmarks();
+            clearVoronoiLayers();
+            clearBoundaryPoints();
+            clearNestedBoundaryLayers();
+            if (boundaryPointMode) toggleBoundaryMode();
+            nestedPanel.classList.remove("visible");
+        }
+
+        // --- Boundary Point Mode ---
+
+        function createBoundaryPointIcon(index) {
+            return L.divIcon({
+                className: "landmark-icon",
+                html: `<div style="
+                    background: #00bcd4;
+                    width: 22px; height: 22px;
+                    border-radius: 3px;
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: 11px; font-weight: bold;
+                    border: 2px solid #fff;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+                    color: #fff;
+                ">${index + 1}</div>`,
+                iconSize: [22, 22],
+                iconAnchor: [11, 11],
+            });
+        }
+
+        function updateBoundaryPointLine() {
+            if (boundaryPointLine) {
+                map.removeLayer(boundaryPointLine);
+                boundaryPointLine = null;
+            }
+            if (boundaryPoints.length >= 2) {
+                const latlngs = boundaryPoints.map(bp => [bp.lat, bp.lon]);
+                if (boundaryPoints.length >= 3) {
+                    latlngs.push(latlngs[0]);
+                }
+                boundaryPointLine = L.polyline(latlngs, {
+                    color: "#00bcd4",
+                    weight: 2,
+                    dashArray: "6, 4",
+                    opacity: 0.8,
+                }).addTo(map);
+            }
+        }
+
+        function addBoundaryPoint(lat, lon) {
+            const idx = boundaryPoints.length;
+            const icon = createBoundaryPointIcon(idx);
+            const marker = L.marker([lat, lon], { icon, draggable: true }).addTo(map);
+
+            const bp = { lat, lon, marker };
+            marker._bpRef = bp;
+
+            marker.on("drag", (e) => {
+                const pos = e.target.getLatLng();
+                bp.lat = pos.lat;
+                bp.lon = pos.lng;
+                updateBoundaryPointLine();
+            });
+
+            marker.on("contextmenu", (e) => {
+                L.DomEvent.stopPropagation(e);
+                map.removeLayer(marker);
+                boundaryPoints = boundaryPoints.filter(p => p !== bp);
+                boundaryPoints.forEach((p, i) => {
+                    p.marker.setIcon(createBoundaryPointIcon(i));
+                });
+                updateBoundaryPointLine();
+                updateBpCount();
+            });
+
+            boundaryPoints.push(bp);
+            updateBoundaryPointLine();
+            updateBpCount();
+        }
+
+        function clearBoundaryPoints() {
+            boundaryPoints.forEach(bp => map.removeLayer(bp.marker));
+            boundaryPoints = [];
+            if (boundaryPointLine) {
+                map.removeLayer(boundaryPointLine);
+                boundaryPointLine = null;
+            }
+            editingNestedName = null;
+            updateBpCount();
+        }
+
+        function updateBpCount() {
+            if (boundaryPoints.length === 0) {
+                bpCountEl.textContent = "";
+            } else {
+                bpCountEl.textContent = `${boundaryPoints.length} pts`;
+            }
+        }
+
+        function toggleBoundaryMode() {
+            boundaryPointMode = !boundaryPointMode;
+            modeToggle.classList.toggle("active", boundaryPointMode);
+            modeToggle.textContent = boundaryPointMode ? "Landmark Mode" : "Boundary Mode";
+            nestedPanel.classList.toggle("visible", boundaryPointMode);
+
+            if (boundaryPointMode) {
+                statusEl.textContent = "Boundary mode — click to place points. Right-click to remove. Drag to move.";
+                renderNestedPanel();
+            } else {
+                statusEl.textContent = boundaryName ? `${boundaryName} — click to place landmarks` : "";
+                clearBoundaryPoints();
+            }
+        }
+
+        modeToggle.addEventListener("click", toggleBoundaryMode);
+
+        // --- Fill Toggle ---
+        const fillToggle = document.getElementById("fillToggle");
+        let fillVisible = true;
+
+        function applyFillVisibility() {
+            if (boundaryLayer) {
+                boundaryLayer.setStyle({ fillOpacity: fillVisible ? 0.12 : 0 });
+            }
+            Object.values(nestedBoundaryLayers).forEach(layer => {
+                layer.setStyle({ fillOpacity: fillVisible ? 0.15 : 0 });
+            });
+            voronoiLayers.forEach(layer => {
+                layer.setStyle({ fillOpacity: fillVisible ? 0.15 : 0 });
+            });
+            fillToggle.textContent = fillVisible ? "Hide Fill" : "Show Fill";
+            fillToggle.classList.toggle("active", !fillVisible);
+        }
+
+        fillToggle.addEventListener("click", () => {
+            fillVisible = !fillVisible;
+            applyFillVisibility();
+        });
+
+        // --- Nested Boundary CRUD ---
+
+        async function loadNestedBoundaries(parentName) {
+            try {
+                const resp = await authFetch("/api/nested-boundaries", {
+                    method: "POST",
+                    body: JSON.stringify({ parent_name: parentName }),
+                });
+                const data = await resp.json();
+                return data.nested_boundaries || {};
+            } catch (err) {
+                console.error("Error loading nested boundaries:", err);
+                return {};
+            }
+        }
+
+        function drawNestedBoundary(name, coords) {
+            if (nestedBoundaryLayers[name]) {
+                map.removeLayer(nestedBoundaryLayers[name]);
+            }
+            const latlngs = coords.map(c => [c.lat, c.lon]);
+            const polygon = L.polygon(latlngs, {
+                color: "#00bcd4",
+                weight: 2,
+                fillColor: "#00bcd4",
+                fillOpacity: fillVisible ? 0.15 : 0,
+            }).addTo(map);
+            polygon.bindTooltip(name, { permanent: true, direction: "center", className: "nested-tooltip" });
+            nestedBoundaryLayers[name] = polygon;
+        }
+
+        function clearNestedBoundaryLayers() {
+            Object.values(nestedBoundaryLayers).forEach(layer => map.removeLayer(layer));
+            nestedBoundaryLayers = {};
+        }
+
+        async function loadAndDrawNestedBoundaries() {
+            if (!boundaryName) return;
+            const nested = await loadNestedBoundaries(boundaryName);
+            clearNestedBoundaryLayers();
+            for (const [name, coords] of Object.entries(nested)) {
+                drawNestedBoundary(name, coords);
+            }
+            if (boundaryPointMode) renderNestedPanel();
+        }
+
+        function renderNestedPanel() {
+            if (!boundaryName) {
+                nestedList.innerHTML = '<div style="color:#7a7a9e;font-size:0.82rem;">Search for a city first.</div>';
+                return;
+            }
+
+            const names = Object.keys(nestedBoundaryLayers);
+            let html = "";
+            if (names.length === 0) {
+                html = '<div style="color:#7a7a9e;font-size:0.82rem;margin-bottom:8px;">No nested boundaries yet.</div>';
+            } else {
+                names.forEach(name => {
+                    html += `<div class="nested-list-item">
+                        <span class="name" onclick="zoomNestedBoundary('${name.replace(/'/g, "\\'")}')">${name}</span>
+                        <div class="actions">
+                            <button class="btn-edit" onclick="editNestedBoundary('${name.replace(/'/g, "\\'")}')">Edit</button>
+                            <button class="btn-delete" onclick="deleteNestedBoundary('${name.replace(/'/g, "\\'")}')">Delete</button>
+                        </div>
+                    </div>`;
+                });
+            }
+            nestedList.innerHTML = html;
+
+            if (boundaryPoints.length > 0 || editingNestedName) {
+                nestedCreate.style.display = "block";
+                if (editingNestedName) {
+                    nestedNameInput.value = editingNestedName;
+                    nestedSaveBtn.textContent = "Update Boundary";
+                    nestedSaveBtn.className = "btn-update";
+                } else {
+                    nestedSaveBtn.textContent = "Save Boundary";
+                    nestedSaveBtn.className = "btn-create";
+                }
+            } else {
+                nestedCreate.style.display = "none";
+                nestedNameInput.value = "";
+            }
+        }
+
+        window.zoomNestedBoundary = function(name) {
+            const layer = nestedBoundaryLayers[name];
+            if (layer) map.fitBounds(layer.getBounds(), { padding: [50, 50] });
+        };
+
+        window.editNestedBoundary = async function(name) {
+            clearBoundaryPoints();
+            editingNestedName = name;
+            nestedNameInput.value = name;
+
+            const nested = await loadNestedBoundaries(boundaryName);
+            const coords = nested[name];
+            if (coords) {
+                coords.forEach(c => addBoundaryPoint(c.lat, c.lon));
+            }
+
+            if (nestedBoundaryLayers[name]) {
+                map.removeLayer(nestedBoundaryLayers[name]);
+                delete nestedBoundaryLayers[name];
+            }
+
+            renderNestedPanel();
+            statusEl.textContent = `Editing "${name}" — move/add/remove points, then update.`;
+        };
+
+        window.deleteNestedBoundary = async function(name) {
+            if (!confirm(`Delete nested boundary "${name}"?`)) return;
+
+            try {
+                const resp = await authFetch("/api/delete-nested-boundary", {
+                    method: "POST",
+                    body: JSON.stringify({ parent_name: boundaryName, child_name: name }),
+                });
+                const data = await resp.json();
+                if (data.ok) {
+                    if (nestedBoundaryLayers[name]) {
+                        map.removeLayer(nestedBoundaryLayers[name]);
+                        delete nestedBoundaryLayers[name];
+                    }
+                    if (editingNestedName === name) {
+                        clearBoundaryPoints();
+                    }
+                    renderNestedPanel();
+                    showToast(`Deleted "${name}"`, "success");
+                } else {
+                    showToast(data.error || "Failed to delete", "error");
+                }
+            } catch (err) {
+                showToast("Error: " + err.message, "error");
+            }
+        };
+
+        nestedSaveBtn.addEventListener("click", async () => {
+            const childName = nestedNameInput.value.trim();
+            if (!childName) {
+                showToast("Enter a boundary name", "error");
+                return;
+            }
+            if (boundaryPoints.length < 3) {
+                showToast("Place at least 3 boundary points", "error");
+                return;
+            }
+
+            const coords = boundaryPoints.map(bp => ({ lat: bp.lat, lon: bp.lon }));
+            const endpoint = editingNestedName ? "/api/update-nested-boundary" : "/api/save-nested-boundary";
+
+            if (editingNestedName && editingNestedName !== childName) {
+                await authFetch("/api/delete-nested-boundary", {
+                    method: "POST",
+                    body: JSON.stringify({ parent_name: boundaryName, child_name: editingNestedName }),
+                });
+            }
+
+            try {
+                const resp = await authFetch("/api/save-nested-boundary", {
+                    method: "POST",
+                    body: JSON.stringify({ parent_name: boundaryName, child_name: childName, coords }),
+                });
+                const data = await resp.json();
+                if (data.ok) {
+                    clearBoundaryPoints();
+                    drawNestedBoundary(childName, coords);
+                    renderNestedPanel();
+                    showToast(`Saved boundary "${childName}"`, "success");
+                    statusEl.textContent = `Boundary "${childName}" saved.`;
+                } else {
+                    showToast(data.error || "Failed to save", "error");
+                }
+            } catch (err) {
+                showToast("Error: " + err.message, "error");
+            }
+        });
+
+        nestedCancelBtn.addEventListener("click", () => {
+            clearBoundaryPoints();
+            if (editingNestedName) {
+                loadAndDrawNestedBoundaries();
+            }
+            renderNestedPanel();
+        });
+
+        // --- Utilities ---
+
+        function pointInPolygon(lat, lon, ring) {
+            let inside = false;
+            for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+                const [rlon_i, rlat_i] = ring[i];
+                const [rlon_j, rlat_j] = ring[j];
+                if (((rlat_i > lat) !== (rlat_j > lat)) &&
+                    (lon < (rlon_j - rlon_i) * (lat - rlat_i) / (rlat_j - rlat_i) + rlon_i)) {
+                    inside = !inside;
+                }
+            }
+            return inside;
+        }
+
+        function isInsideBoundary(lat, lon) {
+            if (!boundaryCoords) return false;
+            for (const ring of boundaryCoords) {
+                if (pointInPolygon(lat, lon, ring)) return true;
+            }
+            return false;
+        }
+
+        function showToast(message, type) {
+            const existing = document.querySelector(".toast-popup");
+            if (existing) existing.remove();
+            const el = document.createElement("div");
+            el.className = `toast-popup toast-${type}`;
+            el.textContent = message;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 3000);
+        }
+
+        async function loadSavedLandmarks(name, silent) {
+            // Load base landmarks
+            try {
+                const resp = await authFetch("/api/saved-landmarks", {
+                    method: "POST",
+                    body: JSON.stringify({ boundary_name: name, version: "base" }),
+                });
+                const data = await resp.json();
+                if (data.landmarks && data.landmarks.length > 0) {
+                    data.landmarks.forEach(lm => {
+                        addBaseLandmarkMarker(lm.lat, lm.lon, lm.name, lm.id);
+                    });
+                }
+            } catch (err) {
+                console.error("Error loading base landmarks:", err);
+            }
+
+            if (!isAdminUser()) {
+                try {
+                    const resp = await authFetch("/api/saved-landmarks", {
+                        method: "POST",
+                        body: JSON.stringify({ boundary_name: name, version: "user" }),
+                    });
+                    const data = await resp.json();
+                    if (data.landmarks && data.landmarks.length > 0) {
+                        data.landmarks.forEach(lm => {
+                            addLandmarkMarker(lm.lat, lm.lon, lm.name, lm.id);
+                        });
+                        if (!silent) {
+                            showToast(`Loaded ${baseLandmarks.length} base + ${data.landmarks.length} your landmarks`, "success");
+                        }
+                    } else if (baseLandmarks.length > 0) {
+                        if (!silent) {
+                            showToast(`Loaded ${baseLandmarks.length} base landmarks`, "success");
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error loading user landmarks:", err);
+                }
+            } else if (baseLandmarks.length > 0) {
+                if (!silent) {
+                    showToast(`Loaded ${baseLandmarks.length} base landmarks (editing base)`, "success");
+                }
+            }
+
+            updateLandmarkCount();
+            if (isAdminUser()) {
+                await loadCachedVoronoi();
+                await loadLandmarkUsers();
+            }
+        }
+
+        function drawBoundary(coords, name, centerLat, centerLon) {
+            clearBoundary();
+
+            const polygons = coords.map(ring =>
+                ring.map(([lon, lat]) => [lat, lon])
+            );
+
+            boundaryLayer = L.polygon(polygons, {
+                color: "#e94560",
+                weight: 2.5,
+                fillColor: "#e94560",
+                fillOpacity: 0.12,
+            }).addTo(map);
+
+            map.fitBounds(boundaryLayer.getBounds(), { padding: [30, 30] });
+            statusEl.textContent = `${name} — click to place landmarks`;
+
+            boundaryCoords = coords;
+            boundaryName = name;
+            coordBtn.disabled = false;
+            saveBtn.disabled = false;
+            modeToggle.disabled = false;
+            fillToggle.disabled = false;
+            baseToggle.disabled = false;
+            userToggle.disabled = !!isAdminUser();
+            refreshBaseBtn.disabled = false;
+            if (isAdminUser()) {
+                userToggle.style.display = "none";
+                saveBtn.textContent = "Save Base";
+            } else {
+                userToggle.style.display = "";
+                saveBtn.textContent = "Save Landmarks";
+            }
+
+            loadSavedLandmarks(name);
+            if (!isAdminUser()) {
+                clearVoronoiLayers();
+            }
+            loadAndDrawNestedBoundaries();
+        }
+
+        function showSuggestions(suggestions) {
+            if (suggestions.length === 0) {
+                suggestionsEl.innerHTML = '<div class="suggestions-header">No results found</div>';
+                suggestionsEl.classList.add("visible");
+                return;
+            }
+
+            let html = '<div class="suggestions-header">No direct boundary found — select a place:</div>';
+            suggestions.forEach((s, i) => {
+                html += `<div class="suggestion-item" data-index="${i}">${s.display_name}</div>`;
+            });
+            suggestionsEl.innerHTML = html;
+            suggestionsEl.classList.add("visible");
+
+            suggestionsEl.querySelectorAll(".suggestion-item").forEach(item => {
+                item.addEventListener("click", () => selectSuggestion(suggestions[item.dataset.index]));
+            });
+        }
+
+        function hideSuggestions() {
+            suggestionsEl.classList.remove("visible");
+        }
+
+        async function selectSuggestion(suggestion) {
+            hideSuggestions();
+            cityInput.value = suggestion.display_name;
+            searchBtn.disabled = true;
+            statusEl.textContent = "Fetching boundary...";
+
+            map.flyTo([parseFloat(suggestion.lat), parseFloat(suggestion.lon)], 12, { duration: 1.5 });
+
+            try {
+                const resp = await fetch("/api/boundary", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        osm_type: suggestion.osm_type,
+                        osm_id: suggestion.osm_id,
+                        display_name: suggestion.display_name,
+                    }),
+                });
+                const data = await resp.json();
+
+                if (data.boundary) {
+                    drawBoundary(data.boundary, data.name, parseFloat(suggestion.lat), parseFloat(suggestion.lon));
+                } else {
+                    statusEl.textContent = data.error || "No boundary found for this place.";
+                }
+            } catch (err) {
+                statusEl.textContent = "Error: " + err.message;
+            } finally {
+                searchBtn.disabled = false;
+            }
+        }
+
+        searchForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            hideSuggestions();
+            const city = cityInput.value.trim();
+            if (!city) return;
+
+            searchBtn.disabled = true;
+            statusEl.textContent = "Searching...";
+
+            try {
+                const resp = await fetch("/api/search", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ city_name: city }),
+                });
+                const data = await resp.json();
+
+                if (data.boundary) {
+                    drawBoundary(data.boundary, data.name);
+                } else if (data.suggestions) {
+                    showSuggestions(data.suggestions);
+                    statusEl.textContent = "Select a place from the suggestions.";
+                } else {
+                    statusEl.textContent = "No results found.";
+                }
+            } catch (err) {
+                statusEl.textContent = "Error: " + err.message;
+            } finally {
+                searchBtn.disabled = false;
+            }
+        });
+
+        // Coordinate form
+        coordForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const parts = coordInput.value.split(",").map(s => s.trim());
+            if (parts.length !== 2) {
+                statusEl.textContent = "Enter coordinates as: Latitude, Longitude";
+                return;
+            }
+            const lat = parseFloat(parts[0]);
+            const lon = parseFloat(parts[1]);
+
+            if (isNaN(lat) || isNaN(lon)) {
+                statusEl.textContent = "Enter valid latitude and longitude.";
+                return;
+            }
+
+            if (!boundaryCoords) {
+                statusEl.textContent = "Search for a city first.";
+                return;
+            }
+
+            if (isInsideBoundary(lat, lon)) {
+                map.panTo([lat, lon]);
+                if (boundaryPointMode) {
+                    addBoundaryPoint(lat, lon);
+                    renderNestedPanel();
+                    statusEl.textContent = `Boundary point #${boundaryPoints.length} placed at (${lat.toFixed(6)}, ${lon.toFixed(6)}).`;
+                } else if (isAdminUser()) {
+                    const lm = addBaseLandmarkMarker(lat, lon, "", null);
+                    lm.marker.openPopup();
+                    updateLandmarkCount();
+                    statusEl.textContent = `Base landmark placed at (${lat.toFixed(6)}, ${lon.toFixed(6)}) — give it a name.`;
+                } else {
+                    const lm = addLandmarkMarker(lat, lon, "");
+                    lm.marker.openPopup();
+                    statusEl.textContent = `Landmark placed at (${lat.toFixed(6)}, ${lon.toFixed(6)}) — give it a name.`;
+                }
+            } else {
+                showToast("Coordinate is outside the boundary!", "error");
+                statusEl.textContent = `(${lat.toFixed(6)}, ${lon.toFixed(6)}) is outside the boundary.`;
+            }
+        });
+
+        // Click on map to place landmark or boundary point
+        map.on("click", (e) => {
+            if (screenLocked) return;
+            if (!boundaryCoords) return;
+
+            const lat = e.latlng.lat;
+            const lon = e.latlng.lng;
+
+            if (boundaryPointMode) {
+                if (isInsideBoundary(lat, lon)) {
+                    addBoundaryPoint(lat, lon);
+                    renderNestedPanel();
+                    statusEl.textContent = `Boundary point #${boundaryPoints.length} placed. Right-click to remove.`;
+                } else {
+                    showToast("Point is outside the parent boundary!", "error");
+                }
+            } else {
+                if (isInsideBoundary(lat, lon)) {
+                    if (isAdminUser()) {
+                        const lm = addBaseLandmarkMarker(lat, lon, "", null);
+                        lm.marker.openPopup();
+                        updateLandmarkCount();
+                        statusEl.textContent = `Base landmark placed — give it a name.`;
+                    } else {
+                        const lm = addLandmarkMarker(lat, lon, "");
+                        lm.marker.openPopup();
+                        statusEl.textContent = `Landmark placed — give it a name.`;
+                    }
+                } else {
+                    showToast("Coordinate is outside the boundary!", "error");
+                }
+            }
+        });
+
+        // Save landmarks button (admins save the base layer; normal users save their version)
+        saveBtn.addEventListener("click", async () => {
+            if (!boundaryName) return;
+
+            if (isAdminUser()) {
+                if (baseLandmarks.length === 0) return;
+                const landmarks = baseLandmarks.map(l => ({
+                    lat: l.lat,
+                    lon: l.lon,
+                    name: l.name || `Unnamed (${l.lat.toFixed(6)}, ${l.lon.toFixed(6)})`,
+                }));
+                saveBtn.disabled = true;
+                try {
+                    const resp = await authFetch("/api/save-landmarks", {
+                        method: "POST",
+                        body: JSON.stringify({ boundary_name: boundaryName, landmarks, as_base: true }),
+                    });
+                    const data = await resp.json();
+                    if (data.ok) {
+                        showToast(`Saved ${data.count} base landmarks!`, "success");
+                        await refreshBaseLandmarksFromServer();
+                        await computeAndDrawVoronoiFromBase();
+                    } else {
+                        showToast(data.error || "Failed to save base landmarks.", "error");
+                    }
+                } catch (err) {
+                    showToast("Error: " + err.message, "error");
+                } finally {
+                    saveBtn.disabled = false;
+                }
+                return;
+            }
+
+            if (userLandmarks.length === 0) return;
+
+            const landmarks = userLandmarks.map(l => ({
+                lat: l.lat,
+                lon: l.lon,
+                name: l.name || `Unnamed (${l.lat.toFixed(6)}, ${l.lon.toFixed(6)})`,
+            }));
+
+            saveBtn.disabled = true;
+            try {
+                const resp = await authFetch("/api/save-landmarks", {
+                    method: "POST",
+                    body: JSON.stringify({ boundary_name: boundaryName, landmarks, as_base: false }),
+                });
+                const data = await resp.json();
+                if (data.ok) {
+                    showToast(`Saved ${data.count} landmarks as your version!`, "success");
+                    if (Array.isArray(data.landmark_ids) && data.landmark_ids.length === userLandmarks.length) {
+                        userLandmarks.forEach((l, i) => {
+                            l.id = data.landmark_ids[i];
+                        });
+                    }
+                } else {
+                    showToast(data.error || "Failed to save landmarks.", "error");
+                }
+            } catch (err) {
+                showToast("Error: " + err.message, "error");
+            } finally {
+                saveBtn.disabled = false;
+            }
+        });
+
+        // Close suggestions when clicking outside
+        document.addEventListener("click", (e) => {
+            if (!e.target.closest(".search-area")) {
+                hideSuggestions();
+            }
+        });
+
+        // --- Admin Features ---
+
+        async function loadLandmarkUsers() {
+            if (!boundaryName || !currentUser || currentUser.role !== "ADMIN") return;
+            try {
+                const resp = await authFetch("/api/admin/landmark-users", {
+                    method: "POST",
+                    body: JSON.stringify({ boundary_name: boundaryName }),
+                });
+                const data = await resp.json();
+                userVersionSelect.innerHTML = '<option value="">-- User versions --</option>';
+                if (data.users) {
+                    data.users.forEach(u => {
+                        const opt = document.createElement("option");
+                        opt.value = u.id;
+                        opt.textContent = `${u.username} (${u.count} landmarks)`;
+                        userVersionSelect.appendChild(opt);
+                    });
+                }
+                promoteBtn.disabled = true;
+            } catch (err) {
+                console.error("Error loading landmark users:", err);
+            }
+        }
+
+        userVersionSelect.addEventListener("change", async () => {
+            clearViewedUserLandmarks();
+            const userId = userVersionSelect.value;
+            if (!userId) {
+                promoteBtn.disabled = true;
+                return;
+            }
+            promoteBtn.disabled = false;
+            try {
+                const resp = await authFetch("/api/saved-landmarks", {
+                    method: "POST",
+                    body: JSON.stringify({ boundary_name: boundaryName, version: "user", user_id: parseInt(userId) }),
+                });
+                const data = await resp.json();
+                if (data.landmarks) {
+                    data.landmarks.forEach(lm => {
+                        if (lm.id == null) return;
+                        addViewedUserLandmarkMarker(lm.lat, lm.lon, lm.name, lm.id);
+                    });
+                    showToast(`Showing ${data.landmarks.length} landmarks from selected user`, "success");
+                }
+            } catch (err) {
+                console.error("Error loading user landmarks:", err);
+            }
+        });
+
+        promoteBtn.addEventListener("click", async () => {
+            const userId = userVersionSelect.value;
+            if (!userId || !boundaryName) return;
+            const userName = userVersionSelect.options[userVersionSelect.selectedIndex].textContent;
+            if (!confirm(`Promote landmarks from ${userName} as the new base version?`)) return;
+
+            promoteBtn.disabled = true;
+            try {
+                const resp = await authFetch("/api/admin/promote-base", {
+                    method: "POST",
+                    body: JSON.stringify({ boundary_name: boundaryName, user_id: parseInt(userId) }),
+                });
+                const data = await resp.json();
+                if (data.ok) {
+                    showToast(`Promoted ${data.count} landmarks to base!`, "success");
+                    clearViewedUserLandmarks();
+                    userVersionSelect.value = "";
+                    await refreshBaseLandmarksFromServer();
+                    await computeAndDrawVoronoiFromBase();
+                } else {
+                    showToast(data.error || "Failed to promote", "error");
+                }
+            } catch (err) {
+                showToast("Error: " + err.message, "error");
+            } finally {
+                promoteBtn.disabled = false;
+            }
+        });
+
+        async function refreshBaseLandmarksFromServer() {
+            clearBaseLandmarks();
+            const baseResp = await authFetch("/api/saved-landmarks", {
+                method: "POST",
+                body: JSON.stringify({ boundary_name: boundaryName, version: "base" }),
+            });
+            const baseData = await baseResp.json();
+            if (baseData.landmarks) {
+                baseData.landmarks.forEach(lm => addBaseLandmarkMarker(lm.lat, lm.lon, lm.name, lm.id));
+            }
+            updateLandmarkCount();
+        }
+
+        async function adminUpdateLandmarkOnServer(landmarkId, name) {
+            const resp = await authFetch("/api/admin/update-landmark", {
+                method: "POST",
+                body: JSON.stringify({
+                    boundary_name: boundaryName,
+                    landmark_id: landmarkId,
+                    name,
+                }),
+            });
+            const data = await resp.json();
+            return { resp, data };
+        }
+
+        window.saveViewedUserLandmarkName = async function(btn, landmarkId) {
+            if (!boundaryName) return;
+            const popup = btn.closest(".landmark-popup-form");
+            const input = popup.querySelector(".lm-name-input");
+            const name = input.value.trim();
+            const lm = viewedUserLandmarks.find(l => l.id === landmarkId);
+            if (!lm) return;
+            try {
+                const { resp, data } = await adminUpdateLandmarkOnServer(landmarkId, name);
+                if (resp.ok && data.ok) {
+                    lm.name = name;
+                    lm.marker.unbindTooltip();
+                    lm.marker.bindTooltip(name || "Unnamed", { direction: "top" });
+                    lm.marker.setPopupContent(buildViewedUserLandmarkPopup(lm));
+                    showToast("Name saved.", "success");
+                } else {
+                    showToast(data.error || "Failed to save name", "error");
+                }
+            } catch (err) {
+                showToast("Error: " + err.message, "error");
+            }
+        };
+
+        window.promoteViewedLandmarkToBase = async function(landmarkId) {
+            const userId = userVersionSelect.value;
+            if (!userId || !boundaryName) {
+                showToast("Select a user version first.", "error");
+                return;
+            }
+            try {
+                const resp = await authFetch("/api/admin/promote-landmarks-to-base", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        boundary_name: boundaryName,
+                        user_id: parseInt(userId, 10),
+                        landmark_ids: [landmarkId],
+                    }),
+                });
+                const data = await resp.json();
+                if (resp.ok && data.ok) {
+                    showToast(`Merged ${data.promoted} landmark(s) into base.`, "success");
+                    map.closePopup();
+                    await refreshBaseLandmarksFromServer();
+                    await computeAndDrawVoronoiFromBase();
+                } else {
+                    showToast(data.error || "Failed to promote landmark", "error");
+                }
+            } catch (err) {
+                showToast("Error: " + err.message, "error");
+            }
+        };
+    </script>
+</body>
+</html>

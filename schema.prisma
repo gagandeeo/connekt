@@ -1,0 +1,66 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider             = "prisma-client-py"
+  recursive_type_depth = -1
+}
+
+enum UserRole {
+  ADMIN
+  NORMAL
+}
+
+model User {
+  id         Int        @id @default(autoincrement())
+  username   String     @unique
+  password   String
+  role       UserRole   @default(NORMAL)
+  created_at DateTime   @default(now())
+
+  landmarks  Landmark[]
+}
+
+model Boundary {
+  key    String @id
+  name   String
+  coords Json
+}
+
+model Landmark {
+  id            Int     @id @default(autoincrement())
+  boundary_name String
+  name          String
+  lat           Float
+  lon           Float
+  is_base       Boolean @default(false)
+  user_id       Int?
+  user          User?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([boundary_name, is_base])
+  @@index([boundary_name, user_id])
+}
+
+model NestedBoundary {
+  id          Int    @id @default(autoincrement())
+  parent_name String
+  child_name  String
+  coords      Json
+
+  @@unique([parent_name, child_name])
+}
+
+model VoronoiCell {
+  id            Int    @id @default(autoincrement())
+  boundary_name String
+  name          String
+  lat           Float
+  lon           Float
+  polygon       Json
+
+  // A landmark could have the same name within the same boundary? Yes. 
+  // Maybe just id is enough. No unique constraint needed, except maybe to avoid duplicates on save?
+  // Let's just rely on the ID.
+}
