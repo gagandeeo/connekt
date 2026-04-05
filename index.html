@@ -1411,6 +1411,22 @@
                 await refreshBaseLandmarksFromServer();
                 if (isAdminUser()) {
                     await loadCachedVoronoi();
+                    // Reload landmarks for selected user version if one is selected
+                    const selectedUserId = userVersionSelect.value;
+                    if (selectedUserId) {
+                        clearViewedUserLandmarks();
+                        const resp = await authFetch("/api/saved-landmarks", {
+                            method: "POST",
+                            body: JSON.stringify({ boundary_name: boundaryName, version: "user", user_id: parseInt(selectedUserId) }),
+                        });
+                        const data = await resp.json();
+                        if (data.landmarks) {
+                            data.landmarks.forEach(lm => {
+                                if (lm.id == null) return;
+                                addViewedUserLandmarkMarker(lm.lat, lm.lon, lm.name, lm.id);
+                            });
+                        }
+                    }
                 } else {
                     clearVoronoiLayers();
                 }
