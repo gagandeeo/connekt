@@ -185,6 +185,69 @@
 
         #map { flex: 1; }
 
+        /* Header toggle */
+        .header-toggle {
+            width: 28px;
+            height: 28px;
+            border: 1px solid #333;
+            border-radius: 6px;
+            background: #0f3460;
+            color: #e0e0e0;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+        .header-toggle:hover { background: #e94560; border-color: #e94560; }
+
+        /* Show-header bar when hidden */
+        .header-show-bar {
+            display: none;
+            background: #16213e;
+            padding: 3px 0;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 1px solid #333;
+        }
+        .header-show-bar:hover { background: #1a2a4e; }
+        .header-show-bar span {
+            font-size: 0.75rem;
+            color: #7a7a9e;
+        }
+
+        body.header-hidden header,
+        body.header-hidden .toolbar {
+            display: none;
+        }
+        body.header-hidden .header-show-bar {
+            display: block;
+        }
+
+        /* Layers control close button (mobile) */
+        .leaflet-control-layers-expanded .layers-close-btn {
+            display: block;
+        }
+        .layers-close-btn {
+            display: none;
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: #555;
+            line-height: 1;
+            padding: 2px 4px;
+        }
+        .layers-close-btn:hover { color: #000; }
+        .leaflet-control-layers-expanded {
+            padding-top: 28px !important;
+        }
+
         /* Buttons */
         .btn-sm {
             padding: 5px 12px;
@@ -841,7 +904,9 @@
             <span class="role-badge" id="roleBadge"></span>
             <button class="btn-logout" id="logoutBtn">Logout</button>
         </div>
+        <button class="header-toggle" id="headerToggle" title="Hide header">&#9650;</button>
     </header>
+    <div class="header-show-bar" id="headerShowBar"><span>&#9660; Show header</span></div>
 
     <div class="toolbar" id="toolbar">
         <div class="toolbar-group">
@@ -1138,7 +1203,25 @@
         };
 
         baseLayers["Google Hybrid"].addTo(map);
-        L.control.layers(baseLayers, null, { position: "topright" }).addTo(map);
+        const layerControl = L.control.layers(baseLayers, null, { position: "topright" }).addTo(map);
+
+        // Close layers control when tapping the map (mobile fix)
+        map.on("click", () => {
+            const container = layerControl.getContainer();
+            if (container) container.classList.remove("leaflet-control-layers-expanded");
+        });
+
+        // Add close button inside layers control for mobile
+        const lcContainer = layerControl.getContainer();
+        const closeBtn = document.createElement("button");
+        closeBtn.className = "layers-close-btn";
+        closeBtn.innerHTML = "&#10005;";
+        closeBtn.title = "Close";
+        closeBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            lcContainer.classList.remove("leaflet-control-layers-expanded");
+        });
+        lcContainer.insertBefore(closeBtn, lcContainer.firstChild);
 
         const statusEl = document.getElementById("status");
         const searchForm = document.getElementById("searchForm");
@@ -1229,6 +1312,20 @@
             infoCard.classList.remove("visible");
             infoBtn.classList.remove("active");
         });
+
+        // Header toggle
+        const headerToggle = document.getElementById("headerToggle");
+        const headerShowBar = document.getElementById("headerShowBar");
+        function hideHeader() {
+            document.body.classList.add("header-hidden");
+            setTimeout(() => map.invalidateSize(), 50);
+        }
+        function showHeader() {
+            document.body.classList.remove("header-hidden");
+            setTimeout(() => map.invalidateSize(), 50);
+        }
+        headerToggle.addEventListener("click", hideHeader);
+        headerShowBar.addEventListener("click", showHeader);
 
         // --- Voronoi ---
 
