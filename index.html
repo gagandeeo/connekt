@@ -964,35 +964,33 @@
             <button class="close-btn" id="infoClose">&times;</button>
         </h2>
         <section>
-            <h3>Search</h3>
-            <p>Type a city or region name and click <kbd>Search</kbd>. Pick from suggestions to load the boundary on the map.</p>
-        </section>
-        <section>
-            <h3>Coordinates</h3>
-            <p>Enter <kbd>Lat, Lon</kbd> (comma-separated) and click <kbd>Pin</kbd> to place a landmark or boundary point at that location.</p>
-        </section>
-        <section>
-            <h3>Landmarks</h3>
+            <h3>Header</h3>
             <ul>
-                <li><strong>Normal users:</strong> place landmarks inside the boundary (grey <kbd>?</kbd> until named, then red stars). <kbd>Save Landmarks</kbd> stores <em>your</em> version. Blue base markers are read-only. Voronoi regions are not shown.</li>
-                <li><strong>Admins:</strong> edit the shared <strong>base</strong> layer directly (blue markers). <kbd>Save Base</kbd> publishes changes. Dashed Voronoi regions are admin-only. Use <kbd>User versions</kbd> to preview others’ landmarks and promote into base.</li>
-                <li>The circular refresh reloads base from the server; admins also reload cached Voronoi.</li>
+                <li><kbd>Search</kbd> &mdash; type a city or region name, then pick from suggestions to load its boundary on the map.</li>
+                <li><kbd>Lat, Lon</kbd> + <kbd>Pin</kbd> &mdash; enter comma-separated coordinates to drop a landmark at that exact location.</li>
+                <li><kbd>?</kbd> &mdash; opens this help card.</li>
+                <li><kbd>Logout</kbd> &mdash; signs you out and returns to the login screen.</li>
+                <li><kbd>&#9650;</kbd> &mdash; hides the header and toolbar for a full-screen map view. Click the <em>"Show header"</em> bar at the top to bring them back.</li>
             </ul>
         </section>
         <section>
-            <h3>Boundary Mode</h3>
+            <h3>Toolbar</h3>
             <ul>
-                <li>Toggle <kbd>Boundary Mode</kbd> to switch from landmark to boundary-point placement.</li>
-                <li>Click to place numbered cyan markers. Drag to reposition. Right-click to remove.</li>
-                <li>Enter a name in the side panel and save to create a nested boundary.</li>
+                <li><kbd>Save Landmarks</kbd> &mdash; saves all your placed landmarks for the current boundary. Each user has their own version.</li>
+                <li><kbd>Base</kbd> &mdash; toggles visibility of the shared base landmarks (blue stars). These are read-only.</li>
+                <li><kbd>My Landmarks</kbd> &mdash; toggles visibility of your personal landmarks (red stars). Click a red star to rename or delete it.</li>
+                <li><kbd>&#8635;</kbd> (refresh) &mdash; reloads the base landmarks from the server.</li>
+                <li><kbd>Hide Fill</kbd> / <kbd>Show Fill</kbd> &mdash; toggles polygon fill transparency while keeping edges visible.</li>
+                <li><kbd>Lock</kbd> &mdash; locks the map to prevent accidental landmark placement. Click again to unlock.</li>
             </ul>
         </section>
         <section>
-            <h3>Other Controls</h3>
+            <h3>Map</h3>
             <ul>
-                <li><kbd>Hide Fill</kbd> / <kbd>Show Fill</kbd> toggles polygon fill transparency.</li>
-                <li><kbd>Lock</kbd> prevents accidental clicks on the map.</li>
-                <li>Use the layer switcher (top-right of map) to change tile layers.</li>
+                <li><strong>Placing landmarks:</strong> click inside a loaded boundary to place a marker. It appears as a grey <kbd>?</kbd> until you name it, then becomes a red star.</li>
+                <li><strong>Editing landmarks:</strong> click a red star to open its popup where you can rename or remove it.</li>
+                <li><strong>Layer switcher</strong> (top-right corner) &mdash; change the map tile layer (satellite, hybrid, street). Tap the <kbd>&times;</kbd> or tap the map to close it.</li>
+                <li><strong>Nested boundaries:</strong> cyan polygons with name labels that represent sub-regions within a city. These are view-only for normal users.</li>
             </ul>
         </section>
     </div>
