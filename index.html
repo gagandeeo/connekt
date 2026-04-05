@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -61,8 +62,13 @@
             outline: none;
         }
 
-        .search-form input::placeholder { color: #7a7a9e; }
-        .search-form input:focus { border-color: #e94560; }
+        .search-form input::placeholder {
+            color: #7a7a9e;
+        }
+
+        .search-form input:focus {
+            border-color: #e94560;
+        }
 
         .search-form button {
             padding: 7px 16px;
@@ -75,8 +81,14 @@
             white-space: nowrap;
         }
 
-        .search-form button:hover { background: #c73652; }
-        .search-form button:disabled { background: #555; cursor: not-allowed; }
+        .search-form button:hover {
+            background: #c73652;
+        }
+
+        .search-form button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
 
         .suggestions {
             position: absolute;
@@ -93,7 +105,9 @@
             display: none;
         }
 
-        .suggestions.visible { display: block; }
+        .suggestions.visible {
+            display: block;
+        }
 
         .suggestion-item {
             padding: 10px 14px;
@@ -103,8 +117,14 @@
             color: #ccc;
         }
 
-        .suggestion-item:last-child { border-bottom: none; }
-        .suggestion-item:hover { background: #0f3460; color: #fff; }
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover {
+            background: #0f3460;
+            color: #fff;
+        }
 
         .suggestions-header {
             padding: 8px 14px;
@@ -132,8 +152,13 @@
             outline: none;
         }
 
-        .coord-form input::placeholder { color: #7a7a9e; }
-        .coord-form input:focus { border-color: #e94560; }
+        .coord-form input::placeholder {
+            color: #7a7a9e;
+        }
+
+        .coord-form input:focus {
+            border-color: #e94560;
+        }
 
         .coord-form button {
             padding: 7px 14px;
@@ -146,8 +171,14 @@
             white-space: nowrap;
         }
 
-        .coord-form button:hover { background: #c73652; }
-        .coord-form button:disabled { background: #555; cursor: not-allowed; }
+        .coord-form button:hover {
+            background: #c73652;
+        }
+
+        .coord-form button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
 
         /* Toolbar row below header */
         .toolbar {
@@ -183,7 +214,9 @@
             text-overflow: ellipsis;
         }
 
-        #map { flex: 1; }
+        #map {
+            flex: 1;
+        }
 
         /* Header toggle */
         .header-toggle {
@@ -201,7 +234,11 @@
             margin-left: auto;
             flex-shrink: 0;
         }
-        .header-toggle:hover { background: #e94560; border-color: #e94560; }
+
+        .header-toggle:hover {
+            background: #e94560;
+            border-color: #e94560;
+        }
 
         /* Show-header bar when hidden */
         .header-show-bar {
@@ -212,7 +249,11 @@
             cursor: pointer;
             border-bottom: 1px solid #333;
         }
-        .header-show-bar:hover { background: #1a2a4e; }
+
+        .header-show-bar:hover {
+            background: #1a2a4e;
+        }
+
         .header-show-bar span {
             font-size: 0.75rem;
             color: #7a7a9e;
@@ -222,6 +263,7 @@
         body.header-hidden .toolbar {
             display: none;
         }
+
         body.header-hidden .header-show-bar {
             display: block;
         }
@@ -230,6 +272,7 @@
         .leaflet-control-layers-expanded .layers-close-btn {
             display: block;
         }
+
         .layers-close-btn {
             display: none;
             position: absolute;
@@ -243,7 +286,11 @@
             line-height: 1;
             padding: 2px 4px;
         }
-        .layers-close-btn:hover { color: #000; }
+
+        .layers-close-btn:hover {
+            color: #000;
+        }
+
         .leaflet-control-layers-expanded {
             padding-top: 28px !important;
         }
@@ -259,10 +306,20 @@
             transition: all 0.15s;
         }
 
-        .btn-sm:disabled { background: #555 !important; cursor: not-allowed; opacity: 0.6; }
+        .btn-sm:disabled {
+            background: #555 !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
 
-        .btn-save { background: #2ecc71; color: #fff; }
-        .btn-save:hover { background: #27ae60; }
+        .btn-save {
+            background: #2ecc71;
+            color: #fff;
+        }
+
+        .btn-save:hover {
+            background: #27ae60;
+        }
 
         .btn-toggle {
             border: 2px solid #e94560;
@@ -276,7 +333,9 @@
             color: #fff;
         }
 
-        .btn-toggle:hover { opacity: 0.85; }
+        .btn-toggle:hover {
+            opacity: 0.85;
+        }
 
         .btn-lock {
             border: 2px solid #f39c12;
@@ -289,7 +348,9 @@
             color: #fff;
         }
 
-        .btn-lock:hover { opacity: 0.85; }
+        .btn-lock:hover {
+            opacity: 0.85;
+        }
 
         .btn-info {
             width: 30px;
@@ -308,7 +369,8 @@
             flex-shrink: 0;
         }
 
-        .btn-info:hover, .btn-info.active {
+        .btn-info:hover,
+        .btn-info.active {
             border-color: #e94560;
             color: #e94560;
         }
@@ -338,11 +400,13 @@
             border-radius: 10px;
             padding: 18px;
             z-index: 2500;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
             display: none;
         }
 
-        .info-card.visible { display: block; }
+        .info-card.visible {
+            display: block;
+        }
 
         .info-card h2 {
             font-size: 1rem;
@@ -361,7 +425,9 @@
             cursor: pointer;
         }
 
-        .info-card .close-btn:hover { color: #e94560; }
+        .info-card .close-btn:hover {
+            color: #e94560;
+        }
 
         .info-card section {
             margin-bottom: 12px;
@@ -375,7 +441,8 @@
             letter-spacing: 0.3px;
         }
 
-        .info-card p, .info-card li {
+        .info-card p,
+        .info-card li {
             font-size: 0.8rem;
             color: #bbb;
             line-height: 1.5;
@@ -397,20 +464,25 @@
         /* Lock overlay */
         .lock-overlay {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             z-index: 800;
             cursor: not-allowed;
             display: none;
         }
 
-        .lock-overlay.active { display: block; }
+        .lock-overlay.active {
+            display: block;
+        }
 
         .lock-banner {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.7);
+            background: rgba(0, 0, 0, 0.7);
             color: #f39c12;
             padding: 10px 24px;
             border-radius: 8px;
@@ -421,7 +493,9 @@
             transition: opacity 0.3s;
         }
 
-        .lock-overlay.active .lock-banner { opacity: 1; }
+        .lock-overlay.active .lock-banner {
+            opacity: 1;
+        }
 
         /* Landmark popup form */
         .landmark-popup-form {
@@ -451,8 +525,15 @@
             font-size: 0.85rem;
         }
 
-        .landmark-popup-form .btn-save { background: #2ecc71; color: #fff; }
-        .landmark-popup-form .btn-delete { background: #e74c3c; color: #fff; }
+        .landmark-popup-form .btn-save {
+            background: #2ecc71;
+            color: #fff;
+        }
+
+        .landmark-popup-form .btn-delete {
+            background: #e74c3c;
+            color: #fff;
+        }
 
         .oob-popup {
             position: fixed;
@@ -466,15 +547,28 @@
             font-size: 0.95rem;
             font-weight: 500;
             z-index: 2000;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
             animation: fadeInOut 3s ease forwards;
         }
 
         @keyframes fadeInOut {
-            0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-            10% { opacity: 1; transform: translateX(-50%) translateY(0); }
-            80% { opacity: 1; }
-            100% { opacity: 0; }
+            0% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-10px);
+            }
+
+            10% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+
+            80% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
         }
 
         .toast-popup {
@@ -488,12 +582,17 @@
             font-size: 0.95rem;
             font-weight: 500;
             z-index: 2000;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
             animation: fadeInOut 3s ease forwards;
         }
 
-        .toast-success { background: #27ae60; }
-        .toast-error { background: #c0392b; }
+        .toast-success {
+            background: #27ae60;
+        }
+
+        .toast-error {
+            background: #c0392b;
+        }
 
         /* Nested panel */
         .nested-panel {
@@ -512,7 +611,9 @@
             display: none;
         }
 
-        .nested-panel.visible { display: block; }
+        .nested-panel.visible {
+            display: block;
+        }
 
         .nested-panel h3 {
             font-size: 0.9rem;
@@ -532,7 +633,9 @@
             margin-bottom: 8px;
         }
 
-        .nested-panel input:focus { border-color: #00bcd4; }
+        .nested-panel input:focus {
+            border-color: #00bcd4;
+        }
 
         .nested-panel button {
             padding: 6px 12px;
@@ -544,11 +647,30 @@
             margin-bottom: 4px;
         }
 
-        .nested-panel .btn-create { background: #00bcd4; color: #fff; }
-        .nested-panel .btn-cancel { background: #555; color: #fff; }
-        .nested-panel .btn-update { background: #f39c12; color: #fff; }
-        .nested-panel .btn-delete { background: #e74c3c; color: #fff; }
-        .nested-panel .btn-edit { background: #3498db; color: #fff; }
+        .nested-panel .btn-create {
+            background: #00bcd4;
+            color: #fff;
+        }
+
+        .nested-panel .btn-cancel {
+            background: #555;
+            color: #fff;
+        }
+
+        .nested-panel .btn-update {
+            background: #f39c12;
+            color: #fff;
+        }
+
+        .nested-panel .btn-delete {
+            background: #e74c3c;
+            color: #fff;
+        }
+
+        .nested-panel .btn-edit {
+            background: #3498db;
+            color: #fff;
+        }
 
         .nested-list-item {
             display: flex;
@@ -565,7 +687,9 @@
             flex: 1;
         }
 
-        .nested-list-item .name:hover { text-decoration: underline; }
+        .nested-list-item .name:hover {
+            text-decoration: underline;
+        }
 
         .nested-list-item .actions {
             display: flex;
@@ -575,8 +699,11 @@
         /* Voronoi spinner */
         .voronoi-spinner {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -593,7 +720,8 @@
         }
 
         .voronoi-spinner .spinner-icon {
-            width: 40px; height: 40px;
+            width: 40px;
+            height: 40px;
             border: 4px solid #333;
             border-top-color: #f39c12;
             border-radius: 50%;
@@ -601,13 +729,20 @@
             margin: 0 auto 12px;
         }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
 
         /* Auth modal */
         .auth-overlay {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -666,7 +801,9 @@
             margin-bottom: 10px;
         }
 
-        .auth-modal input:focus { border-color: #e94560; }
+        .auth-modal input:focus {
+            border-color: #e94560;
+        }
 
         .auth-modal .auth-btn {
             width: 100%;
@@ -680,8 +817,14 @@
             margin-top: 4px;
         }
 
-        .auth-modal .auth-btn:hover { background: #c73652; }
-        .auth-modal .auth-btn:disabled { background: #555; cursor: not-allowed; }
+        .auth-modal .auth-btn:hover {
+            background: #c73652;
+        }
+
+        .auth-modal .auth-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
 
         .auth-error {
             color: #e74c3c;
@@ -712,8 +855,15 @@
             text-transform: uppercase;
         }
 
-        .role-badge.admin { background: #e94560; color: #fff; }
-        .role-badge.normal { background: #0f3460; color: #7a7a9e; }
+        .role-badge.admin {
+            background: #e94560;
+            color: #fff;
+        }
+
+        .role-badge.normal {
+            background: #0f3460;
+            color: #7a7a9e;
+        }
 
         .btn-logout {
             padding: 5px 10px;
@@ -725,7 +875,10 @@
             cursor: pointer;
         }
 
-        .btn-logout:hover { border-color: #e94560; color: #e94560; }
+        .btn-logout:hover {
+            border-color: #e94560;
+            color: #e94560;
+        }
 
         /* Landmark version toggle */
         .btn-version {
@@ -739,7 +892,9 @@
             color: #fff;
         }
 
-        .btn-version:hover { opacity: 0.85; }
+        .btn-version:hover {
+            opacity: 0.85;
+        }
 
         .btn-refresh {
             display: inline-flex;
@@ -780,14 +935,19 @@
             outline: none;
         }
 
-        .admin-group select:focus { border-color: #e94560; }
+        .admin-group select:focus {
+            border-color: #e94560;
+        }
 
         .btn-promote {
             background: #f39c12;
             color: #fff;
         }
 
-        .btn-promote:hover { background: #e67e22; }
+        .btn-promote:hover {
+            background: #e67e22;
+        }
+
         .btn-promote-one {
             background: #8e44ad;
             color: #fff;
@@ -799,7 +959,10 @@
             width: 100%;
             margin-top: 8px;
         }
-        .btn-promote-one:hover { background: #6c3483; }
+
+        .btn-promote-one:hover {
+            background: #6c3483;
+        }
 
         /* Mobile responsive */
         @media (max-width: 768px) {
@@ -833,7 +996,9 @@
                 gap: 6px;
             }
 
-            .toolbar-divider { display: none; }
+            .toolbar-divider {
+                display: none;
+            }
 
             .toolbar-group {
                 flex-wrap: wrap;
@@ -864,11 +1029,20 @@
         }
 
         @media (max-width: 480px) {
-            .btn-sm { padding: 5px 8px; font-size: 0.75rem; }
-            .btn-info { width: 26px; height: 26px; font-size: 0.85rem; }
+            .btn-sm {
+                padding: 5px 8px;
+                font-size: 0.75rem;
+            }
+
+            .btn-info {
+                width: 26px;
+                height: 26px;
+                font-size: 0.85rem;
+            }
         }
     </style>
 </head>
+
 <body>
     <!-- Auth Modal -->
     <div class="auth-overlay" id="authOverlay">
@@ -920,16 +1094,21 @@
         <div class="toolbar-group">
             <button class="btn-sm btn-version active" id="baseToggle" disabled>Base</button>
             <button class="btn-sm btn-version active" id="userToggle" disabled>My Landmarks</button>
-            <button type="button" class="btn-sm btn-refresh" id="refreshBaseBtn" disabled title="Reload base landmarks and Voronoi regions from server" aria-label="Refresh base and Voronoi">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M23 4v6h-6"/>
-                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            <button type="button" class="btn-sm btn-refresh" id="refreshBaseBtn" disabled
+                title="Reload base landmarks and Voronoi regions from server" aria-label="Refresh base and Voronoi">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                    aria-hidden="true">
+                    <path d="M23 4v6h-6" />
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
                 </svg>
             </button>
         </div>
         <div class="toolbar-divider"></div>
         <div class="toolbar-group admin-group" id="adminGroup" style="display:none;">
-            <select id="userVersionSelect"><option value="">-- User versions --</option></select>
+            <select id="userVersionSelect">
+                <option value="">-- User versions --</option>
+            </select>
             <button class="btn-sm btn-promote" id="promoteBtn" disabled>Promote to Base</button>
         </div>
         <div class="toolbar-divider"></div>
@@ -939,7 +1118,7 @@
         </div>
         <div class="toolbar-divider"></div>
         <div class="toolbar-group">
-            <button class="btn-sm btn-toggle" id="fillToggle" disabled>Hide Fill</button>
+            <button class="btn-sm btn-toggle active" id="fillToggle" disabled>Show Fill</button>
             <button class="btn-sm btn-lock" id="lockToggle">Lock</button>
         </div>
         <span id="status"></span>
@@ -966,31 +1145,43 @@
         <section>
             <h3>Header</h3>
             <ul>
-                <li><kbd>Search</kbd> &mdash; type a city or region name, then pick from suggestions to load its boundary on the map.</li>
-                <li><kbd>Lat, Lon</kbd> + <kbd>Pin</kbd> &mdash; enter comma-separated coordinates to drop a landmark at that exact location.</li>
+                <li><kbd>Search</kbd> &mdash; type a city or region name, then pick from suggestions to load its
+                    boundary on the map.</li>
+                <li><kbd>Lat, Lon</kbd> + <kbd>Pin</kbd> &mdash; enter comma-separated coordinates to drop a landmark at
+                    that exact location.</li>
                 <li><kbd>?</kbd> &mdash; opens this help card.</li>
                 <li><kbd>Logout</kbd> &mdash; signs you out and returns to the login screen.</li>
-                <li><kbd>&#9650;</kbd> &mdash; hides the header and toolbar for a full-screen map view. Click the <em>"Show header"</em> bar at the top to bring them back.</li>
+                <li><kbd>&#9650;</kbd> &mdash; hides the header and toolbar for a full-screen map view. Click the
+                    <em>"Show header"</em> bar at the top to bring them back.</li>
             </ul>
         </section>
         <section>
             <h3>Toolbar</h3>
             <ul>
-                <li><kbd>Save Landmarks</kbd> &mdash; saves all your placed landmarks for the current boundary. Each user has their own version.</li>
-                <li><kbd>Base</kbd> &mdash; toggles visibility of the shared base landmarks (blue stars). These are read-only.</li>
-                <li><kbd>My Landmarks</kbd> &mdash; toggles visibility of your personal landmarks (red stars). Click a red star to rename or delete it.</li>
+                <li><kbd>Save Landmarks</kbd> &mdash; saves all your placed landmarks for the current boundary. Each
+                    user has their own version.</li>
+                <li><kbd>Base</kbd> &mdash; toggles visibility of the shared base landmarks (blue stars). These are
+                    read-only.</li>
+                <li><kbd>My Landmarks</kbd> &mdash; toggles visibility of your personal landmarks (red stars). Click a
+                    red star to rename or delete it.</li>
                 <li><kbd>&#8635;</kbd> (refresh) &mdash; reloads the base landmarks from the server.</li>
-                <li><kbd>Hide Fill</kbd> / <kbd>Show Fill</kbd> &mdash; toggles polygon fill transparency while keeping edges visible.</li>
-                <li><kbd>Lock</kbd> &mdash; locks the map to prevent accidental landmark placement. Click again to unlock.</li>
+                <li><kbd>Hide Fill</kbd> / <kbd>Show Fill</kbd> &mdash; toggles polygon fill transparency while keeping
+                    edges visible.</li>
+                <li><kbd>Lock</kbd> &mdash; locks the map to prevent accidental landmark placement. Click again to
+                    unlock.</li>
             </ul>
         </section>
         <section>
             <h3>Map</h3>
             <ul>
-                <li><strong>Placing landmarks:</strong> click inside a loaded boundary to place a marker. It appears as a grey <kbd>?</kbd> until you name it, then becomes a red star.</li>
-                <li><strong>Editing landmarks:</strong> click a red star to open its popup where you can rename or remove it.</li>
-                <li><strong>Layer switcher</strong> (top-right corner) &mdash; change the map tile layer (satellite, hybrid, street). Tap the <kbd>&times;</kbd> or tap the map to close it.</li>
-                <li><strong>Nested boundaries:</strong> cyan polygons with name labels that represent sub-regions within a city. These are view-only for normal users.</li>
+                <li><strong>Placing landmarks:</strong> click inside a loaded boundary to place a marker. It appears as
+                    a grey <kbd>?</kbd> until you name it, then becomes a red star.</li>
+                <li><strong>Editing landmarks:</strong> click a red star to open its popup where you can rename or
+                    remove it.</li>
+                <li><strong>Layer switcher</strong> (top-right corner) &mdash; change the map tile layer (satellite,
+                    hybrid, street). Tap the <kbd>&times;</kbd> or tap the map to close it.</li>
+                <li><strong>Nested boundaries:</strong> cyan polygons with name labels that represent sub-regions within
+                    a city. These are view-only for normal users.</li>
             </ul>
         </section>
     </div>
@@ -1173,7 +1364,7 @@
                         showUserUI();
                         return;
                     }
-                } catch (e) {}
+                } catch (e) { }
             }
             authOverlay.style.display = "flex";
         })();
@@ -1638,7 +1829,7 @@
             return lm;
         }
 
-        window.saveLandmarkName = function(btn) {
+        window.saveLandmarkName = function (btn) {
             const popup = btn.closest(".landmark-popup-form");
             const input = popup.querySelector(".lm-name-input");
             const name = input.value.trim();
@@ -1652,7 +1843,7 @@
             }
         };
 
-        window.deleteLandmark = function(btn) {
+        window.deleteLandmark = function (btn) {
             const openMarker = userLandmarks.find(l => l.marker.isPopupOpen());
             if (openMarker) {
                 map.removeLayer(openMarker.marker);
@@ -1695,7 +1886,7 @@
             return lm;
         }
 
-        window.saveAdminBaseLandmarkLocal = function(btn) {
+        window.saveAdminBaseLandmarkLocal = function (btn) {
             const popup = btn.closest(".landmark-popup-form");
             const input = popup.querySelector(".lm-name-input");
             const name = input.value.trim();
@@ -1710,7 +1901,7 @@
             }
         };
 
-        window.deleteAdminBaseLandmark = function(btn) {
+        window.deleteAdminBaseLandmark = function (btn) {
             const openLm = baseLandmarks.find(l => l.marker.isPopupOpen());
             if (openLm) {
                 map.removeLayer(openLm.marker);
@@ -1779,9 +1970,9 @@
             baseToggle.disabled = true;
             userToggle.disabled = true;
             refreshBaseBtn.disabled = true;
-            fillVisible = true;
-            fillToggle.textContent = "Hide Fill";
-            fillToggle.classList.remove("active");
+            fillVisible = false;
+            fillToggle.textContent = "Show Fill";
+            fillToggle.classList.add("active");
             clearCoordMarker();
             clearBaseLandmarks();
             clearUserLandmarks();
@@ -1901,7 +2092,7 @@
 
         // --- Fill Toggle ---
         const fillToggle = document.getElementById("fillToggle");
-        let fillVisible = true;
+        let fillVisible = false;
 
         function applyFillVisibility() {
             if (boundaryLayer) {
@@ -2007,12 +2198,12 @@
             }
         }
 
-        window.zoomNestedBoundary = function(name) {
+        window.zoomNestedBoundary = function (name) {
             const layer = nestedBoundaryLayers[name];
             if (layer) map.fitBounds(layer.getBounds(), { padding: [50, 50] });
         };
 
-        window.editNestedBoundary = async function(name) {
+        window.editNestedBoundary = async function (name) {
             clearBoundaryPoints();
             editingNestedName = name;
             nestedNameInput.value = name;
@@ -2032,7 +2223,7 @@
             statusEl.textContent = `Editing "${name}" — move/add/remove points, then update.`;
         };
 
-        window.deleteNestedBoundary = async function(name) {
+        window.deleteNestedBoundary = async function (name) {
             if (!confirm(`Delete nested boundary "${name}"?`)) return;
 
             try {
@@ -2204,7 +2395,7 @@
                 color: "#e94560",
                 weight: 2.5,
                 fillColor: "#e94560",
-                fillOpacity: 0.12,
+                fillOpacity: fillVisible ? 0.12 : 0,
             }).addTo(map);
 
             map.fitBounds(boundaryLayer.getBounds(), { padding: [30, 30] });
@@ -2576,7 +2767,7 @@
             return { resp, data };
         }
 
-        window.saveViewedUserLandmarkName = async function(btn, landmarkId) {
+        window.saveViewedUserLandmarkName = async function (btn, landmarkId) {
             if (!boundaryName) return;
             const popup = btn.closest(".landmark-popup-form");
             const input = popup.querySelector(".lm-name-input");
@@ -2599,7 +2790,7 @@
             }
         };
 
-        window.promoteViewedLandmarkToBase = async function(landmarkId) {
+        window.promoteViewedLandmarkToBase = async function (landmarkId) {
             const userId = userVersionSelect.value;
             if (!userId || !boundaryName) {
                 showToast("Select a user version first.", "error");
@@ -2629,4 +2820,5 @@
         };
     </script>
 </body>
+
 </html>
