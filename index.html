@@ -303,6 +303,10 @@
         }
 
         /* ── Header toggle ── */
+        .header-toggle-mobile {
+            display: none;
+        }
+
         .header-toggle {
             width: 30px;
             height: 30px;
@@ -1382,30 +1386,96 @@
         }
 
         /* ── Mobile responsive ── */
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
             header {
-                padding: 8px 12px;
-                gap: 8px;
+                padding: 6px 10px;
+                gap: 6px;
+                row-gap: 6px;
             }
 
             header h1 {
-                font-size: 1.05rem;
-                width: 100%;
+                font-size: 1rem;
+                order: 1;
+            }
+
+            .user-section {
+                order: 2;
+                gap: 10px;
+                margin-left: auto;
+            }
+
+            .user-section .username {
+                font-size: 0.78rem;
+            }
+
+            .user-section .role-badge {
+                font-size: 0.6rem;
+                padding: 2px 6px;
+            }
+
+            .btn-logout {
+                padding: 4px 9px;
+                font-size: 0.75rem;
+            }
+
+            .header-toggle {
+                display: none;
+            }
+
+            .header-toggle-mobile {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 32px;
+                margin-left: auto;
             }
 
             .search-area {
+                order: 4;
                 min-width: 0;
                 max-width: none;
-                width: 100%;
+                flex: 1 1 calc(55% - 3px);
+            }
+
+            .search-form {
+                min-width: 0;
+                gap: 4px;
+            }
+
+            .search-form input {
+                min-width: 0;
+                padding: 7px 10px;
+                font-size: 0.85rem;
+            }
+
+            .search-form button {
+                padding: 7px 10px;
+                font-size: 0.8rem;
             }
 
             .coord-form {
-                width: 100%;
+                order: 4;
+                flex: 1 1 calc(45% - 3px);
+                min-width: 0;
+                gap: 4px;
             }
 
             .coord-form input {
                 flex: 1;
                 width: auto;
+                min-width: 0;
+                padding: 7px 8px;
+                font-size: 0.8rem;
+            }
+
+            .coord-form button {
+                padding: 7px 10px;
+                font-size: 0.8rem;
+            }
+
+            .btn-info {
+                order: 3;
+                margin-left: 4px;
             }
 
             .toolbar {
@@ -1544,6 +1614,7 @@
             <button class="btn-sm btn-toggle active" id="fillToggle" disabled>Show Fill</button>
             <button class="btn-sm btn-lock" id="lockToggle">Lock</button>
         </div>
+        <button class="btn-sm header-toggle-mobile" id="headerToggleMobile" title="Hide header">&#9650;</button>
         <span id="status"></span>
     </div>
 
@@ -1938,6 +2009,7 @@
             setTimeout(() => map.invalidateSize(), 50);
         }
         headerToggle.addEventListener("click", hideHeader);
+        document.getElementById("headerToggleMobile").addEventListener("click", hideHeader);
         headerShowBar.addEventListener("click", showHeader);
 
         // --- Voronoi ---
