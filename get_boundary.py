@@ -14,39 +14,35 @@ from db import db
 HEADERS = {"User-Agent": "boundary-finder/1.0"}
 
 
-def cache_key(city_name):
-    """Normalize city name to a consistent cache key."""
-    return city_name.strip().lower()
-
-
 async def find_in_cache(city_name):
-    """Search boundary DB by key or by matching the resolved name."""
-    key = cache_key(city_name)
-    entry = await db.boundary.find_unique(where={"key": key})
+    """Look up a Boundary by name (case-insensitive). Returns boundary_id, name, coords."""
+    name = city_name.strip()
+    if not name:
+        return None
+    entry = await db.boundary.find_first(
+        where={"name": {"equals": name, "mode": "insensitive"}}
+    )
     if entry:
-        return {"name": entry.name, "coords": entry.coords}
-    entry = await db.boundary.find_first(where={"name": {"equals": key, "mode": "insensitive"}})
-    if entry:
-        return {"name": entry.name, "coords": entry.coords}
+        return {"boundary_id": entry.boundary_id, "name": entry.name, "coords": entry.coords}
     return None
 
 
-async def save_to_cache(city_name, resolved_name, coords):
-    """Save boundary under both the query key and the resolved name key."""
+async def save_to_cache(resolved_name, coords):
+    """Upsert a boundary keyed by case-insensitive name. Returns boundary_id."""
     coords_clean = json.loads(json.dumps(coords, default=_serialize))
-    key1 = cache_key(city_name)
-    key2 = cache_key(resolved_name)
-    await db.boundary.upsert(
-        where={"key": key1},
-        data={"create": {"key": key1, "name": resolved_name, "coords": Json(coords_clean)},
-              "update": {"name": resolved_name, "coords": Json(coords_clean)}},
+    existing = await db.boundary.find_first(
+        where={"name": {"equals": resolved_name, "mode": "insensitive"}}
     )
-    if key1 != key2:
-        await db.boundary.upsert(
-            where={"key": key2},
-            data={"create": {"key": key2, "name": resolved_name, "coords": Json(coords_clean)},
-                  "update": {"name": resolved_name, "coords": Json(coords_clean)}},
+    if existing:
+        await db.boundary.update(
+            where={"boundary_id": existing.boundary_id},
+            data={"name": resolved_name, "coords": Json(coords_clean)},
         )
+        return existing.boundary_id
+    created = await db.boundary.create(
+        data={"name": resolved_name, "coords": Json(coords_clean)},
+    )
+    return created.boundary_id
 
 
 def _serialize(obj):
@@ -171,7 +167,7 @@ async def get_boundary(city_name, plot=False, coord=None):
             display_name = gdf.iloc[0].get("display_name", city_name)
             print(f"Found boundary for: {display_name}")
             coords = extract_coords(polygon)
-            await save_to_cache(city_name, display_name, coords)
+            await save_to_cache(display_name, coords)
             print(f"Cached boundary for '{city_name}'.")
             if coord:
                 check_coordinate(polygon, coord)
@@ -219,7 +215,7 @@ async def get_boundary(city_name, plot=False, coord=None):
         print(f"Loaded boundary from cache for: {cached['name']}")
         coords = [list(map(tuple, ring)) for ring in cached["coords"]]
         polygon = coords_to_polygon(coords)
-        await save_to_cache(city_name, cached["name"], coords)
+        await save_to_cache(cached["name"], coords)
         if coord:
             check_coordinate(polygon, coord)
         if plot:
@@ -235,7 +231,7 @@ async def get_boundary(city_name, plot=False, coord=None):
         if polygon.geom_type in ("Polygon", "MultiPolygon"):
             print(f"Found boundary via OSMnx for: {selected['local_name']}")
             coords = extract_coords(polygon)
-            await save_to_cache(city_name, selected["local_name"], coords)
+            await save_to_cache(selected["local_name"], coords)
             print(f"Cached boundary for '{city_name}'.")
             if coord:
                 check_coordinate(polygon, coord)

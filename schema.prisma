@@ -24,43 +24,48 @@ model User {
 }
 
 model Boundary {
-  key    String @id
-  name   String
-  coords Json
+  boundary_id BigInt @id @default(autoincrement())
+  name        String
+  coords      Json
+
+  landmarks         Landmark[]
+  nested_boundaries NestedBoundary[]
+  voronoi_cells     VoronoiCell[]
 }
 
 model Landmark {
-  id            Int     @id @default(autoincrement())
-  boundary_name String
-  name          String
-  lat           Float
-  lon           Float
-  is_base       Boolean @default(false)
-  user_id       Int?
-  user          User?   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id          Int      @id @default(autoincrement())
+  boundary_id BigInt
+  boundary    Boundary @relation(fields: [boundary_id], references: [boundary_id], onDelete: Cascade)
+  name        String
+  lat         Float
+  lon         Float
+  is_base     Boolean  @default(false)
+  user_id     Int?
+  user        User?    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@index([boundary_name, is_base])
-  @@index([boundary_name, user_id])
+  @@index([boundary_id, is_base])
+  @@index([boundary_id, user_id])
 }
 
 model NestedBoundary {
-  id          Int    @id @default(autoincrement())
-  parent_name String
+  id          Int      @id @default(autoincrement())
+  boundary_id BigInt
+  boundary    Boundary @relation(fields: [boundary_id], references: [boundary_id], onDelete: Cascade)
   child_name  String
   coords      Json
 
-  @@unique([parent_name, child_name])
+  @@unique([boundary_id, child_name])
 }
 
 model VoronoiCell {
-  id            Int    @id @default(autoincrement())
-  boundary_name String
-  name          String
-  lat           Float
-  lon           Float
-  polygon       Json
+  id          Int      @id @default(autoincrement())
+  boundary_id BigInt
+  boundary    Boundary @relation(fields: [boundary_id], references: [boundary_id], onDelete: Cascade)
+  name        String
+  lat         Float
+  lon         Float
+  polygon     Json
 
-  // A landmark could have the same name within the same boundary? Yes. 
-  // Maybe just id is enough. No unique constraint needed, except maybe to avoid duplicates on save?
-  // Let's just rely on the ID.
+  @@index([boundary_id])
 }

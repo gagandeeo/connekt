@@ -1812,7 +1812,7 @@
             if (boundaryName) {
                 clearUserLandmarks();
                 clearBaseLandmarks();
-                void loadSavedLandmarks(boundaryName, true);
+                void loadSavedLandmarks(boundaryId, true);
             }
         }
 
@@ -1940,6 +1940,7 @@
         let boundaryLayer = null;
         let boundaryCoords = null;
         let boundaryName = null;
+        let boundaryId = null;
         let coordMarker = null;
 
         // Base landmarks (read-only): array of { lat, lon, name, marker }
@@ -2053,7 +2054,7 @@
                 const resp = await authFetch("/api/compute-voronoi", {
                     method: "POST",
                     body: JSON.stringify({
-                        boundary_name: boundaryName,
+                        boundary_id: boundaryId,
                         landmarks,
                         boundary_coords: boundaryCoords,
                     }),
@@ -2078,7 +2079,7 @@
             try {
                 const resp = await authFetch("/api/voronoi", {
                     method: "POST",
-                    body: JSON.stringify({ boundary_name: boundaryName }),
+                    body: JSON.stringify({ boundary_id: boundaryId }),
                 });
                 const data = await resp.json();
                 if (data.cells && data.cells.length > 0) {
@@ -2104,7 +2105,7 @@
                         clearViewedUserLandmarks();
                         const resp = await authFetch("/api/saved-landmarks", {
                             method: "POST",
-                            body: JSON.stringify({ boundary_name: boundaryName, version: "user", user_id: parseInt(selectedUserId) }),
+                            body: JSON.stringify({ boundary_id: boundaryId, version: "user", user_id: parseInt(selectedUserId) }),
                         });
                         const data = await resp.json();
                         if (data.landmarks) {
@@ -2458,6 +2459,7 @@
             }
             boundaryCoords = null;
             boundaryName = null;
+            boundaryId = null;
             coordBtn.disabled = true;
             saveBtn.disabled = true;
             saveBtn.textContent = "Save Landmarks";
@@ -2611,11 +2613,12 @@
 
         // --- Nested Boundary CRUD ---
 
-        async function loadNestedBoundaries(parentName) {
+        async function loadNestedBoundaries(id) {
+            if (id == null) return {};
             try {
                 const resp = await authFetch("/api/nested-boundaries", {
                     method: "POST",
-                    body: JSON.stringify({ parent_name: parentName }),
+                    body: JSON.stringify({ boundary_id: id }),
                 });
                 const data = await resp.json();
                 return data.nested_boundaries || {};
@@ -2647,7 +2650,7 @@
 
         async function loadAndDrawNestedBoundaries() {
             if (!boundaryName) return;
-            const nested = await loadNestedBoundaries(boundaryName);
+            const nested = await loadNestedBoundaries(boundaryId);
             clearNestedBoundaryLayers();
             for (const [name, coords] of Object.entries(nested)) {
                 drawNestedBoundary(name, coords);
@@ -2704,7 +2707,7 @@
             editingNestedName = name;
             nestedNameInput.value = name;
 
-            const nested = await loadNestedBoundaries(boundaryName);
+            const nested = await loadNestedBoundaries(boundaryId);
             const coords = nested[name];
             if (coords) {
                 coords.forEach(c => addBoundaryPoint(c.lat, c.lon));
@@ -2725,7 +2728,7 @@
             try {
                 const resp = await authFetch("/api/delete-nested-boundary", {
                     method: "POST",
-                    body: JSON.stringify({ parent_name: boundaryName, child_name: name }),
+                    body: JSON.stringify({ boundary_id: boundaryId, child_name: name }),
                 });
                 const data = await resp.json();
                 if (data.ok) {
@@ -2763,14 +2766,14 @@
             if (editingNestedName && editingNestedName !== childName) {
                 await authFetch("/api/delete-nested-boundary", {
                     method: "POST",
-                    body: JSON.stringify({ parent_name: boundaryName, child_name: editingNestedName }),
+                    body: JSON.stringify({ boundary_id: boundaryId, child_name: editingNestedName }),
                 });
             }
 
             try {
                 const resp = await authFetch("/api/save-nested-boundary", {
                     method: "POST",
-                    body: JSON.stringify({ parent_name: boundaryName, child_name: childName, coords }),
+                    body: JSON.stringify({ boundary_id: boundaryId, child_name: childName, coords }),
                 });
                 const data = await resp.json();
                 if (data.ok) {
@@ -2828,12 +2831,13 @@
             setTimeout(() => el.remove(), 3000);
         }
 
-        async function loadSavedLandmarks(name, silent) {
+        async function loadSavedLandmarks(id, silent) {
+            if (id == null) return;
             // Load base landmarks
             try {
                 const resp = await authFetch("/api/saved-landmarks", {
                     method: "POST",
-                    body: JSON.stringify({ boundary_name: name, version: "base" }),
+                    body: JSON.stringify({ boundary_id: id, version: "base" }),
                 });
                 const data = await resp.json();
                 if (data.landmarks && data.landmarks.length > 0) {
@@ -2849,7 +2853,7 @@
                 try {
                     const resp = await authFetch("/api/saved-landmarks", {
                         method: "POST",
-                        body: JSON.stringify({ boundary_name: name, version: "user" }),
+                        body: JSON.stringify({ boundary_id: id, version: "user" }),
                     });
                     const data = await resp.json();
                     if (data.landmarks && data.landmarks.length > 0) {
@@ -2880,7 +2884,7 @@
             }
         }
 
-        function drawBoundary(coords, name, centerLat, centerLon) {
+        function drawBoundary(coords, name, id, centerLat, centerLon) {
             clearBoundary();
 
             const polygons = coords.map(ring =>
@@ -2899,6 +2903,7 @@
 
             boundaryCoords = coords;
             boundaryName = name;
+            boundaryId = id;
             coordBtn.disabled = false;
             saveBtn.disabled = false;
             modeToggle.disabled = false;
@@ -2914,7 +2919,7 @@
                 saveBtn.textContent = "Save Landmarks";
             }
 
-            loadSavedLandmarks(name);
+            loadSavedLandmarks(id);
             if (!isAdminUser()) {
                 clearVoronoiLayers();
             }
@@ -2965,7 +2970,7 @@
                 const data = await resp.json();
 
                 if (data.boundary) {
-                    drawBoundary(data.boundary, data.name, parseFloat(suggestion.lat), parseFloat(suggestion.lon));
+                    drawBoundary(data.boundary, data.name, data.boundary_id, parseFloat(suggestion.lat), parseFloat(suggestion.lon));
                 } else {
                     statusEl.textContent = data.error || "No boundary found for this place.";
                 }
@@ -2994,7 +2999,7 @@
                 const data = await resp.json();
 
                 if (data.boundary) {
-                    drawBoundary(data.boundary, data.name);
+                    drawBoundary(data.boundary, data.name, data.boundary_id);
                 } else if (data.suggestions) {
                     showSuggestions(data.suggestions);
                     statusEl.textContent = "Select a place from the suggestions.";
@@ -3100,7 +3105,7 @@
                 try {
                     const resp = await authFetch("/api/save-landmarks", {
                         method: "POST",
-                        body: JSON.stringify({ boundary_name: boundaryName, landmarks, as_base: true }),
+                        body: JSON.stringify({ boundary_id: boundaryId, landmarks, as_base: true }),
                     });
                     const data = await resp.json();
                     if (data.ok) {
@@ -3130,7 +3135,7 @@
             try {
                 const resp = await authFetch("/api/save-landmarks", {
                     method: "POST",
-                    body: JSON.stringify({ boundary_name: boundaryName, landmarks, as_base: false }),
+                    body: JSON.stringify({ boundary_id: boundaryId, landmarks, as_base: false }),
                 });
                 const data = await resp.json();
                 if (data.ok) {
@@ -3164,7 +3169,7 @@
             try {
                 const resp = await authFetch("/api/admin/landmark-users", {
                     method: "POST",
-                    body: JSON.stringify({ boundary_name: boundaryName }),
+                    body: JSON.stringify({ boundary_id: boundaryId }),
                 });
                 const data = await resp.json();
                 userVersionSelect.innerHTML = '<option value="">-- User versions --</option>';
@@ -3193,7 +3198,7 @@
             try {
                 const resp = await authFetch("/api/saved-landmarks", {
                     method: "POST",
-                    body: JSON.stringify({ boundary_name: boundaryName, version: "user", user_id: parseInt(userId) }),
+                    body: JSON.stringify({ boundary_id: boundaryId, version: "user", user_id: parseInt(userId) }),
                 });
                 const data = await resp.json();
                 if (data.landmarks) {
@@ -3218,7 +3223,7 @@
             try {
                 const resp = await authFetch("/api/admin/promote-base", {
                     method: "POST",
-                    body: JSON.stringify({ boundary_name: boundaryName, user_id: parseInt(userId) }),
+                    body: JSON.stringify({ boundary_id: boundaryId, user_id: parseInt(userId) }),
                 });
                 const data = await resp.json();
                 if (data.ok) {
@@ -3241,7 +3246,7 @@
             clearBaseLandmarks();
             const baseResp = await authFetch("/api/saved-landmarks", {
                 method: "POST",
-                body: JSON.stringify({ boundary_name: boundaryName, version: "base" }),
+                body: JSON.stringify({ boundary_id: boundaryId, version: "base" }),
             });
             const baseData = await baseResp.json();
             if (baseData.landmarks) {
@@ -3254,7 +3259,7 @@
             const resp = await authFetch("/api/admin/update-landmark", {
                 method: "POST",
                 body: JSON.stringify({
-                    boundary_name: boundaryName,
+                    boundary_id: boundaryId,
                     landmark_id: landmarkId,
                     name,
                 }),
@@ -3296,7 +3301,7 @@
                 const resp = await authFetch("/api/admin/promote-landmarks-to-base", {
                     method: "POST",
                     body: JSON.stringify({
-                        boundary_name: boundaryName,
+                        boundary_id: boundaryId,
                         user_id: parseInt(userId, 10),
                         landmark_ids: [landmarkId],
                     }),

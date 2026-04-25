@@ -72,6 +72,29 @@ async def require_admin(request: Request) -> dict:
     return user
 
 
+async def resolve_boundary_id(body: dict, name_field: str = "boundary_name") -> int | None:
+    """Resolve a Boundary primary key from a request body.
+
+    Accepts either `boundary_id` (preferred) or a string field
+    (`boundary_name` by default, `parent_name` for nested-boundary endpoints)
+    that is looked up case-insensitively against `Boundary.name`.
+    Returns None if neither is provided or the boundary doesn't exist.
+    """
+    raw_id = body.get("boundary_id")
+    if raw_id is not None:
+        try:
+            return int(raw_id)
+        except (TypeError, ValueError):
+            return None
+    name = (body.get(name_field) or "").strip()
+    if not name:
+        return None
+    entry = await db.boundary.find_first(
+        where={"name": {"equals": name, "mode": "insensitive"}}
+    )
+    return entry.boundary_id if entry else None
+
+
 class HTTPException(Exception):
     def __init__(self, status_code: int, detail: str):
         self.status_code = status_code
@@ -155,7 +178,7 @@ async def api_search(request: Request):
     cached = await find_in_cache(city_name)
     if cached:
         coords = [list(map(list, ring)) for ring in cached["coords"]]
-        return {"boundary": coords, "name": cached["name"]}
+        return {"boundary": coords, "name": cached["name"], "boundary_id": cached["boundary_id"]}
 
     results = search_nominatim(city_name)
     suggestions = [
@@ -185,7 +208,7 @@ async def api_boundary(request: Request):
     cached = await find_in_cache(display_name)
     if cached:
         coords = [list(map(list, ring)) for ring in cached["coords"]]
-        return {"boundary": coords, "name": cached["name"]}
+        return {"boundary": coords, "name": cached["name"], "boundary_id": cached["boundary_id"]}
 
     relations = get_address_relations(osm_type, osm_id)
 
@@ -196,8 +219,7 @@ async def api_boundary(request: Request):
         cached = await find_in_cache(local_name)
         if cached:
             coords = [list(map(list, ring)) for ring in cached["coords"]]
-            await save_to_cache(display_name, cached["name"], coords)
-            return {"boundary": coords, "name": cached["name"]}
+            return {"boundary": coords, "name": cached["name"], "boundary_id": cached["boundary_id"]}
 
         osm_id_str = f"R{relation_id}"
         try:
@@ -205,18 +227,18 @@ async def api_boundary(request: Request):
             polygon = gdf.geometry.iloc[0]
             if polygon.geom_type in ("Polygon", "MultiPolygon"):
                 coords = extract_coords(polygon)
-                await save_to_cache(display_name, local_name, coords)
+                bid = await save_to_cache(local_name, coords)
                 coords = [list(map(list, ring)) for ring in coords]
-                return {"boundary": coords, "name": local_name}
+                return {"boundary": coords, "name": local_name, "boundary_id": bid}
         except Exception:
             pass
 
         try:
             polygon = fetch_polygon_from_osm_fr(relation_id)
             coords = extract_coords(polygon)
-            await save_to_cache(display_name, local_name, coords)
+            bid = await save_to_cache(local_name, coords)
             coords = [list(map(list, ring)) for ring in coords]
-            return {"boundary": coords, "name": local_name}
+            return {"boundary": coords, "name": local_name, "boundary_id": bid}
         except Exception:
             continue
 
@@ -312,33 +334,32 @@ async def api_reverse_geocode(request: Request):
 
 @app.post("/api/saved-landmarks")
 async def api_get_saved_landmarks(request: Request):
-    """Load saved landmarks for a boundary name.
+    """Load saved landmarks for a boundary.
     version='base' returns base landmarks, version='user' returns user's landmarks."""
     body = await request.json()
-    boundary_name = body.get("boundary_name", "").strip().lower()
     version = body.get("version", "base")
-    if not boundary_name:
-        return JSONResponse({"error": "boundary_name is required"}, status_code=400)
+    boundary_id = await resolve_boundary_id(body)
+    if boundary_id is None:
+        return JSONResponse({"error": "boundary_id or boundary_name is required"}, status_code=400)
 
     if version == "user":
         user = await require_user(request)
-        # Admin can view another user's landmarks via user_id param
         target_user_id = body.get("user_id", user["id"])
         if target_user_id != user["id"] and user["role"] != "ADMIN":
             return JSONResponse({"error": "Cannot view other users' landmarks"}, status_code=403)
         rows = await db.landmark.find_many(where={
-            "boundary_name": boundary_name,
+            "boundary_id": boundary_id,
             "user_id": int(target_user_id),
             "is_base": False,
         })
     else:
         rows = await db.landmark.find_many(where={
-            "boundary_name": boundary_name,
+            "boundary_id": boundary_id,
             "is_base": True,
         })
 
     landmarks = [{"id": r.id, "name": r.name, "lat": r.lat, "lon": r.lon} for r in rows]
-    return {"landmarks": landmarks}
+    return {"landmarks": landmarks, "boundary_id": boundary_id}
 
 
 @app.post("/api/save-landmarks")
@@ -347,20 +368,20 @@ async def api_save_landmarks(request: Request):
     Admins can save as base with as_base=true."""
     user = await require_user(request)
     data = await request.json()
-    boundary_name = data.get("boundary_name", "").strip().lower()
     landmarks = data.get("landmarks", [])
     as_base = data.get("as_base", False)
+    boundary_id = await resolve_boundary_id(data)
 
-    if not boundary_name:
-        return JSONResponse({"error": "boundary_name is required"}, status_code=400)
+    if boundary_id is None:
+        return JSONResponse({"error": "boundary_id or boundary_name is required"}, status_code=400)
 
     if as_base:
         if user["role"] != "ADMIN":
             return JSONResponse({"error": "Admin access required to save as base"}, status_code=403)
-        await db.landmark.delete_many(where={"boundary_name": boundary_name, "is_base": True})
+        await db.landmark.delete_many(where={"boundary_id": boundary_id, "is_base": True})
         for lm in landmarks:
             await db.landmark.create(data={
-                "boundary_name": boundary_name,
+                "boundary_id": boundary_id,
                 "name": lm.get("name", ""),
                 "lat": float(lm["lat"]),
                 "lon": float(lm["lon"]),
@@ -369,14 +390,14 @@ async def api_save_landmarks(request: Request):
         return {"ok": True, "count": len(landmarks)}
     else:
         await db.landmark.delete_many(where={
-            "boundary_name": boundary_name,
+            "boundary_id": boundary_id,
             "user_id": user["id"],
             "is_base": False,
         })
         landmark_ids = []
         for lm in landmarks:
             row = await db.landmark.create(data={
-                "boundary_name": boundary_name,
+                "boundary_id": boundary_id,
                 "name": lm.get("name", ""),
                 "lat": float(lm["lat"]),
                 "lon": float(lm["lon"]),
@@ -391,13 +412,13 @@ async def api_save_landmarks(request: Request):
 async def api_get_nested_boundaries(request: Request):
     """Load all nested boundaries for a parent boundary."""
     body = await request.json()
-    parent_name = body.get("parent_name", "").strip().lower()
-    if not parent_name:
-        return JSONResponse({"error": "parent_name is required"}, status_code=400)
+    boundary_id = await resolve_boundary_id(body, name_field="parent_name")
+    if boundary_id is None:
+        return JSONResponse({"error": "boundary_id or parent_name is required"}, status_code=400)
 
-    rows = await db.nestedboundary.find_many(where={"parent_name": parent_name})
+    rows = await db.nestedboundary.find_many(where={"boundary_id": boundary_id})
     children = {r.child_name: r.coords for r in rows}
-    return {"nested_boundaries": children}
+    return {"nested_boundaries": children, "boundary_id": boundary_id}
 
 
 @app.post("/api/save-nested-boundary")
@@ -405,19 +426,22 @@ async def api_save_nested_boundary(request: Request):
     """Save or create a nested boundary under a parent. Admin only."""
     await require_admin(request)
     data = await request.json()
-    parent_name = data.get("parent_name", "").strip().lower()
     child_name = data.get("child_name", "").strip()
     coords = data.get("coords", [])
+    boundary_id = await resolve_boundary_id(data, name_field="parent_name")
 
-    if not parent_name or not child_name:
-        return JSONResponse({"error": "parent_name and child_name are required"}, status_code=400)
+    if boundary_id is None or not child_name:
+        return JSONResponse(
+            {"error": "boundary_id (or parent_name) and child_name are required"},
+            status_code=400,
+        )
     if len(coords) < 3:
         return JSONResponse({"error": "At least 3 boundary points are required"}, status_code=400)
 
     await db.nestedboundary.upsert(
-        where={"parent_name_child_name": {"parent_name": parent_name, "child_name": child_name}},
+        where={"boundary_id_child_name": {"boundary_id": boundary_id, "child_name": child_name}},
         data={
-            "create": {"parent_name": parent_name, "child_name": child_name, "coords": Json(coords)},
+            "create": {"boundary_id": boundary_id, "child_name": child_name, "coords": Json(coords)},
             "update": {"coords": Json(coords)},
         },
     )
@@ -429,23 +453,26 @@ async def api_update_nested_boundary(request: Request):
     """Update coordinates of an existing nested boundary. Admin only."""
     await require_admin(request)
     data = await request.json()
-    parent_name = data.get("parent_name", "").strip().lower()
     child_name = data.get("child_name", "").strip()
     coords = data.get("coords", [])
+    boundary_id = await resolve_boundary_id(data, name_field="parent_name")
 
-    if not parent_name or not child_name:
-        return JSONResponse({"error": "parent_name and child_name are required"}, status_code=400)
+    if boundary_id is None or not child_name:
+        return JSONResponse(
+            {"error": "boundary_id (or parent_name) and child_name are required"},
+            status_code=400,
+        )
     if len(coords) < 3:
         return JSONResponse({"error": "At least 3 boundary points are required"}, status_code=400)
 
     existing = await db.nestedboundary.find_unique(
-        where={"parent_name_child_name": {"parent_name": parent_name, "child_name": child_name}}
+        where={"boundary_id_child_name": {"boundary_id": boundary_id, "child_name": child_name}}
     )
     if not existing:
         return JSONResponse({"error": "Nested boundary not found"}, status_code=404)
 
     await db.nestedboundary.update(
-        where={"parent_name_child_name": {"parent_name": parent_name, "child_name": child_name}},
+        where={"boundary_id_child_name": {"boundary_id": boundary_id, "child_name": child_name}},
         data={"coords": Json(coords)},
     )
     return {"ok": True, "child_name": child_name}
@@ -456,20 +483,23 @@ async def api_delete_nested_boundary(request: Request):
     """Delete a nested boundary. Admin only."""
     await require_admin(request)
     data = await request.json()
-    parent_name = data.get("parent_name", "").strip().lower()
     child_name = data.get("child_name", "").strip()
+    boundary_id = await resolve_boundary_id(data, name_field="parent_name")
 
-    if not parent_name or not child_name:
-        return JSONResponse({"error": "parent_name and child_name are required"}, status_code=400)
+    if boundary_id is None or not child_name:
+        return JSONResponse(
+            {"error": "boundary_id (or parent_name) and child_name are required"},
+            status_code=400,
+        )
 
     existing = await db.nestedboundary.find_unique(
-        where={"parent_name_child_name": {"parent_name": parent_name, "child_name": child_name}}
+        where={"boundary_id_child_name": {"boundary_id": boundary_id, "child_name": child_name}}
     )
     if not existing:
         return JSONResponse({"error": "Nested boundary not found"}, status_code=404)
 
     await db.nestedboundary.delete(
-        where={"parent_name_child_name": {"parent_name": parent_name, "child_name": child_name}}
+        where={"boundary_id_child_name": {"boundary_id": boundary_id, "child_name": child_name}}
     )
     return {"ok": True}
 
@@ -479,12 +509,12 @@ async def api_admin_landmark_users(request: Request):
     """List users who have landmark versions for a boundary. Admin only."""
     await require_admin(request)
     body = await request.json()
-    boundary_name = body.get("boundary_name", "").strip().lower()
-    if not boundary_name:
-        return JSONResponse({"error": "boundary_name is required"}, status_code=400)
+    boundary_id = await resolve_boundary_id(body)
+    if boundary_id is None:
+        return JSONResponse({"error": "boundary_id or boundary_name is required"}, status_code=400)
 
     rows = await db.landmark.find_many(
-        where={"boundary_name": boundary_name, "is_base": False},
+        where={"boundary_id": boundary_id, "is_base": False},
         include={"user": True},
     )
     user_map = {}
@@ -502,24 +532,27 @@ async def api_admin_promote_base(request: Request):
     """Replace all base landmarks with a copy of this user's set. Admin only."""
     await require_admin(request)
     body = await request.json()
-    boundary_name = body.get("boundary_name", "").strip().lower()
     user_id = body.get("user_id")
+    boundary_id = await resolve_boundary_id(body)
 
-    if not boundary_name or user_id is None:
-        return JSONResponse({"error": "boundary_name and user_id are required"}, status_code=400)
+    if boundary_id is None or user_id is None:
+        return JSONResponse(
+            {"error": "boundary_id (or boundary_name) and user_id are required"},
+            status_code=400,
+        )
 
     user_landmarks = await db.landmark.find_many(where={
-        "boundary_name": boundary_name,
+        "boundary_id": boundary_id,
         "user_id": int(user_id),
         "is_base": False,
     })
     if not user_landmarks:
         return JSONResponse({"error": "No landmarks found for this user and boundary"}, status_code=404)
 
-    await db.landmark.delete_many(where={"boundary_name": boundary_name, "is_base": True})
+    await db.landmark.delete_many(where={"boundary_id": boundary_id, "is_base": True})
     for lm in user_landmarks:
         await db.landmark.create(data={
-            "boundary_name": boundary_name,
+            "boundary_id": boundary_id,
             "name": lm.name,
             "lat": lm.lat,
             "lon": lm.lon,
@@ -535,12 +568,15 @@ async def api_admin_promote_landmarks_to_base(request: Request):
     Unnamed landmarks are always added as new base rows."""
     await require_admin(request)
     body = await request.json()
-    boundary_name = body.get("boundary_name", "").strip().lower()
     user_id = body.get("user_id")
     landmark_ids = body.get("landmark_ids", [])
+    boundary_id = await resolve_boundary_id(body)
 
-    if not boundary_name or user_id is None:
-        return JSONResponse({"error": "boundary_name and user_id are required"}, status_code=400)
+    if boundary_id is None or user_id is None:
+        return JSONResponse(
+            {"error": "boundary_id (or boundary_name) and user_id are required"},
+            status_code=400,
+        )
     if not landmark_ids or not isinstance(landmark_ids, list):
         return JSONResponse({"error": "landmark_ids must be a non-empty list"}, status_code=400)
 
@@ -555,7 +591,7 @@ async def api_admin_promote_landmarks_to_base(request: Request):
         if not row:
             continue
         if (
-            row.boundary_name != boundary_name
+            row.boundary_id != boundary_id
             or row.is_base
             or row.user_id != uid
         ):
@@ -563,7 +599,7 @@ async def api_admin_promote_landmarks_to_base(request: Request):
         if row.name and row.name.strip():
             existing = await db.landmark.find_first(
                 where={
-                    "boundary_name": boundary_name,
+                    "boundary_id": boundary_id,
                     "is_base": True,
                     "name": row.name,
                 }
@@ -576,7 +612,7 @@ async def api_admin_promote_landmarks_to_base(request: Request):
             else:
                 await db.landmark.create(
                     data={
-                        "boundary_name": boundary_name,
+                        "boundary_id": boundary_id,
                         "name": row.name,
                         "lat": row.lat,
                         "lon": row.lon,
@@ -586,7 +622,7 @@ async def api_admin_promote_landmarks_to_base(request: Request):
         else:
             await db.landmark.create(
                 data={
-                    "boundary_name": boundary_name,
+                    "boundary_id": boundary_id,
                     "name": row.name,
                     "lat": row.lat,
                     "lon": row.lon,
@@ -608,13 +644,13 @@ async def api_admin_update_landmark(request: Request):
     """Rename any landmark row for a boundary (base or per-user). Admin only."""
     await require_admin(request)
     body = await request.json()
-    boundary_name = body.get("boundary_name", "").strip().lower()
     landmark_id = body.get("landmark_id")
     name = body.get("name")
+    boundary_id = await resolve_boundary_id(body)
 
-    if not boundary_name or landmark_id is None:
+    if boundary_id is None or landmark_id is None:
         return JSONResponse(
-            {"error": "boundary_name and landmark_id are required"},
+            {"error": "boundary_id (or boundary_name) and landmark_id are required"},
             status_code=400,
         )
     if not isinstance(name, str):
@@ -626,7 +662,7 @@ async def api_admin_update_landmark(request: Request):
         return JSONResponse({"error": "Invalid landmark_id"}, status_code=400)
 
     row = await db.landmark.find_unique(where={"id": lid})
-    if not row or row.boundary_name != boundary_name:
+    if not row or row.boundary_id != boundary_id:
         return JSONResponse({"error": "Landmark not found"}, status_code=404)
 
     await db.landmark.update(where={"id": lid}, data={"name": name})
@@ -712,9 +748,9 @@ def compute_voronoi_cells(landmarks, boundary_coords):
     return results
 
 
-async def find_containing_nested_boundary(landmarks, parent_name):
+async def find_containing_nested_boundary(landmarks, boundary_id):
     """Find the nested boundary that contains all the given landmarks."""
-    rows = await db.nestedboundary.find_many(where={"parent_name": parent_name})
+    rows = await db.nestedboundary.find_many(where={"boundary_id": boundary_id})
 
     for row in rows:
         child_coords = row.coords
@@ -742,46 +778,46 @@ async def find_containing_nested_boundary(landmarks, parent_name):
 async def api_compute_voronoi(request: Request):
     """Compute Voronoi polygons for landmarks, clipped to the nested boundary containing them."""
     data = await request.json()
-    boundary_name = data.get("boundary_name", "").strip().lower()
     landmarks = data.get("landmarks", [])
     boundary_coords = data.get("boundary_coords", [])
+    boundary_id = await resolve_boundary_id(data)
 
-    if not boundary_name:
-        return JSONResponse({"error": "boundary_name is required"}, status_code=400)
+    if boundary_id is None:
+        return JSONResponse({"error": "boundary_id or boundary_name is required"}, status_code=400)
     if len(landmarks) < 2:
         return JSONResponse({"error": "At least 2 landmarks are required for Voronoi"}, status_code=400)
     if not boundary_coords:
         return JSONResponse({"error": "boundary_coords are required"}, status_code=400)
 
-    nested_name, nested_coords = await find_containing_nested_boundary(landmarks, boundary_name)
+    nested_name, nested_coords = await find_containing_nested_boundary(landmarks, boundary_id)
     clip_coords = nested_coords if nested_coords else boundary_coords
 
     cells = compute_voronoi_cells(landmarks, clip_coords)
 
-    await db.voronoicell.delete_many(where={"boundary_name": boundary_name})
+    await db.voronoicell.delete_many(where={"boundary_id": boundary_id})
     for cell in cells:
         await db.voronoicell.create(data={
-            "boundary_name": boundary_name,
+            "boundary_id": boundary_id,
             "name": cell.get("name", ""),
             "lat": float(cell["lat"]),
             "lon": float(cell["lon"]),
             "polygon": Json(cell["polygon"]),
         })
 
-    return {"ok": True, "cells": cells, "clipped_to": nested_name or boundary_name}
+    return {"ok": True, "cells": cells, "clipped_to": nested_name, "boundary_id": boundary_id}
 
 
 @app.post("/api/voronoi")
 async def api_get_voronoi(request: Request):
     """Load cached Voronoi cells for a boundary."""
     body = await request.json()
-    boundary_name = body.get("boundary_name", "").strip().lower()
-    if not boundary_name:
-        return JSONResponse({"error": "boundary_name is required"}, status_code=400)
+    boundary_id = await resolve_boundary_id(body)
+    if boundary_id is None:
+        return JSONResponse({"error": "boundary_id or boundary_name is required"}, status_code=400)
 
-    rows = await db.voronoicell.find_many(where={"boundary_name": boundary_name})
+    rows = await db.voronoicell.find_many(where={"boundary_id": boundary_id})
     cells = [{"name": r.name, "lat": r.lat, "lon": r.lon, "polygon": r.polygon} for r in rows]
-    return {"cells": cells}
+    return {"cells": cells, "boundary_id": boundary_id}
 
 
 if __name__ == "__main__":
